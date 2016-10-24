@@ -1,0 +1,10 @@
+Package: ttsc
+Version: {{VERSION}}
+Section: web
+Priority: optional
+Architecture: all
+Maintainer: INDIGO DataCloud
+Description: TTSc.
+ .
+ TTSc - the token translation service command line client.
+ .

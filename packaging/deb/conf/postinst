@@ -1,0 +1,6 @@
+#!/bin/sh
+
+if [ -f /usr/bin/ttsc ]; then
+  chown root:root /usr/bin/ttsc
+  chmod 555 /usr/bin/ttsc
+fi
