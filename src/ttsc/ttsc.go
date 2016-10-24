@@ -13,11 +13,11 @@ import (
 	"strings"
 )
 
-const OrchentVersion string = "0.1.0"
+const ttscVersion string = "0.1.0"
 
 var (
-	app     = kingpin.New("orchent", "The orchestrator client. Please store your access token in the 'ORCHENT_TOKEN' environment variable: 'export ORCHENT_TOKEN=<your access token>'").Version(OrchentVersion)
-	hostUrl = app.Flag("url", "the base url of the orchestrator rest interface").Short('u').Required().String()
+	app     = kingpin.New("orchent", "The Token Translation Service (TTS) client.\nPlease store your access token in the 'TTSC_TOKEN' and the issuer url in the 'TTS_ISSUER' environment variable: 'export TTSC_TOKEN=<your access token>', 'export TTSC_ISSUER=<the issuer url>'").Version(ttscVersion)
+	hostUrl = app.Flag("url", "the base url of the TTS rest interface").Short('u').Required().String()
 
 	lsDep = app.Command("depls", "list all deployments")
 
@@ -208,7 +208,7 @@ func (page OrchentPage) String() string {
 }
 
 func client() *http.Client {
-	_, set := os.LookupEnv("ORCHENT_INSECURE")
+	_, set := os.LookupEnv("TTSC_INSECURE")
 	if set {
 		tr := &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -405,16 +405,17 @@ func resource_show(depUuid string, resUuid string, base *sling.Sling) {
 
 func base_connection(urlBase string) *sling.Sling {
 	client := client()
-	tokenValue, tokenSet := os.LookupEnv("ORCHENT_TOKEN")
+	tokenValue, tokenSet := os.LookupEnv("TTSC_TOKEN")
+	issuerValue, issuerSet := os.LookupEnv("TTSC_ISSUEr")
 	base := sling.New().Client(client).Base(urlBase)
-	base = base.Set("User-Agent", "Orchent")
+	base = base.Set("User-Agent", "TTSc")
 	base = base.Set("Accept", "application/json")
-	if tokenSet {
+	if tokenSet && issuerSet {
 		token := "Bearer " + tokenValue
-		return base.Set("Authorization", token)
+		return base.Set("Authorization", token).Set("X-OpenId-Connect-Issuer", issuerValue)
 	} else {
 		fmt.Println(" ")
-		fmt.Println("*** WARNING: no access token has been specified ***")
+		fmt.Println("*** WARNING: either access token or issuer has not been specified ***")
 		return base
 	}
 }
