@@ -13,40 +13,41 @@ import (
 	"strings"
 )
 
-const ttscVersion string = "0.1.0"
+const ttscVersion string = "0.5.0-alpha"
+const apiVersion string = "v1"
 
 var (
 	app     = kingpin.New("orchent", "The Token Translation Service (TTS) client.\nPlease store your access token in the 'TTSC_TOKEN' and the issuer url in the 'TTS_ISSUER' environment variable: 'export TTSC_TOKEN=<your access token>', 'export TTSC_ISSUER=<the issuer url>'").Version(ttscVersion)
 	hostUrl = app.Flag("url", "the base url of the TTS rest interface").Short('u').Required().String()
 
-	lsDep = app.Command("depls", "list all deployments")
+	lsProv = app.Command("lsprov", "list all OpenID Connect provider")
 
-	showDep     = app.Command("depshow", "show a specific deployment")
-	showDepUuid = showDep.Arg("uuid", "the uuid of the deployment to display").Required().String()
+	// showDep     = app.Command("depshow", "show a specific deployment")
+	// showDepUuid = showDep.Arg("uuid", "the uuid of the deployment to display").Required().String()
 
-	createDep          = app.Command("depcreate", "create a new deployment")
-	createDepCallback  = createDep.Flag("callback", "the callback url").Default("").String()
-	createDepTemplate  = createDep.Arg("template", "the tosca template file").Required().File()
-	createDepParameter = createDep.Arg("parameter", "the parameter to set (json object)").Required().String()
+	// createDep          = app.Command("depcreate", "create a new deployment")
+	// createDepCallback  = createDep.Flag("callback", "the callback url").Default("").String()
+	// createDepTemplate  = createDep.Arg("template", "the tosca template file").Required().File()
+	// createDepParameter = createDep.Arg("parameter", "the parameter to set (json object)").Required().String()
 
-	updateDep          = app.Command("depupdate", "update the given deployment")
-	updateDepCallback  = updateDep.Flag("callback", "the callback url").Default("").String()
-	updateDepUuid      = updateDep.Arg("uuid", "the uuid of the deployment to update").Required().String()
-	updateDepTemplate  = updateDep.Arg("template", "the tosca template file").Required().File()
-	updateDepParameter = updateDep.Arg("parameter", "the parameter to set (json object)").Required().String()
+	// updateDep          = app.Command("depupdate", "update the given deployment")
+	// updateDepCallback  = updateDep.Flag("callback", "the callback url").Default("").String()
+	// updateDepUuid      = updateDep.Arg("uuid", "the uuid of the deployment to update").Required().String()
+	// updateDepTemplate  = updateDep.Arg("template", "the tosca template file").Required().File()
+	// updateDepParameter = updateDep.Arg("parameter", "the parameter to set (json object)").Required().String()
 
-	depTemplate     = app.Command("deptemplate", "show the template of the given deployment")
-	templateDepUuid = depTemplate.Arg("uuid", "the uuid of the deployment to get the template").Required().String()
+	// depTemplate     = app.Command("deptemplate", "show the template of the given deployment")
+	// templateDepUuid = depTemplate.Arg("uuid", "the uuid of the deployment to get the template").Required().String()
 
-	delDep     = app.Command("depdel", "delete a given deployment")
-	delDepUuid = delDep.Arg("uuid", "the uuid of the deployment to delete").Required().String()
+	// delDep     = app.Command("depdel", "delete a given deployment")
+	// delDepUuid = delDep.Arg("uuid", "the uuid of the deployment to delete").Required().String()
 
-	lsRes        = app.Command("resls", "list the resources of a given deployment")
-	lsResDepUuid = lsRes.Arg("depployment uuid", "the uuid of the deployment").Required().String()
+	// lsRes        = app.Command("resls", "list the resources of a given deployment")
+	// lsResDepUuid = lsRes.Arg("depployment uuid", "the uuid of the deployment").Required().String()
 
-	showRes        = app.Command("resshow", "show a specific resource of a given deployment")
-	showResDepUuid = showRes.Arg("deployment uuid", "the uuid of the deployment").Required().String()
-	showResResUuid = showRes.Arg("resource uuid", "the uuid of the resource to show").Required().String()
+	// showRes        = app.Command("resshow", "show a specific resource of a given deployment")
+	// showResDepUuid = showRes.Arg("deployment uuid", "the uuid of the deployment").Required().String()
+	// showResResUuid = showRes.Arg("resource uuid", "the uuid of the resource to show").Required().String()
 )
 
 type OrchentError struct {
@@ -219,22 +220,22 @@ func client() *http.Client {
 	}
 }
 
-func deployments_list(base *sling.Sling) {
-	base = base.Get("./deployments")
-	fmt.Println("retrieving deployment list:")
-	receive_and_print_deploymentlist(base)
+func provider_list(base *sling.Sling) {
+	base = base.Get(fmt.Sprintf("./%s/oidcp",apiVersion))
+	fmt.Println("retrieving provider list:")
+	receive_and_print_provider(base)
 }
 
-func receive_and_print_deploymentlist(complete *sling.Sling) {
-	deploymentList := new(OrchentDeploymentList)
-	orchentError := new(OrchentError)
-	_, err := complete.Receive(deploymentList, orchentError)
+func receive_and_print_provider(complete *sling.Sling) {
+	providerList := new(TTScDeploymentList)
+	ttscError := new(TTScError)
+	_, err := complete.Receive(providerList, ttscError)
 	if err != nil {
-		fmt.Printf("error requesting list of providers:\n %s\n", err)
+		fmt.Printf("error requesting list of provider:\n %s\n", err)
 		return
 	}
 	if is_error(orchentError) {
-		fmt.Printf("error requesting list of deployments:\n %s\n", orchentError)
+		fmt.Printf("error requesting list of provider:\n %s\n", ttscError)
 	} else {
 		links := deploymentList.Links
 		curPage := get_link("self", links)
@@ -406,7 +407,7 @@ func resource_show(depUuid string, resUuid string, base *sling.Sling) {
 func base_connection(urlBase string) *sling.Sling {
 	client := client()
 	tokenValue, tokenSet := os.LookupEnv("TTSC_TOKEN")
-	issuerValue, issuerSet := os.LookupEnv("TTSC_ISSUEr")
+	issuerValue, issuerSet := os.LookupEnv("TTSC_ISSUER")
 	base := sling.New().Client(client).Base(urlBase)
 	base = base.Set("User-Agent", "TTSc")
 	base = base.Set("Accept", "application/json")
@@ -431,44 +432,44 @@ func base_url(rawUrl string) string {
 
 func main() {
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
-	case lsDep.FullCommand():
+	case lsProv.FullCommand():
 		baseUrl := base_url(*hostUrl)
 		base := base_connection(baseUrl)
-		deployments_list(base)
+		provider_list(base)
 
-	case showDep.FullCommand():
-		baseUrl := base_url(*hostUrl)
-		base := base_connection(baseUrl)
-		deployment_show(*showDepUuid, base)
+	// case showDep.FullCommand():
+	// 	baseUrl := base_url(*hostUrl)
+	// 	base := base_connection(baseUrl)
+	// 	deployment_show(*showDepUuid, base)
 
-	case createDep.FullCommand():
-		baseUrl := base_url(*hostUrl)
-		base := base_connection(baseUrl)
-		deployment_create_update(*createDepTemplate, *createDepParameter, *createDepCallback, nil, base)
+	// case createDep.FullCommand():
+	// 	baseUrl := base_url(*hostUrl)
+	// 	base := base_connection(baseUrl)
+	// 	deployment_create_update(*createDepTemplate, *createDepParameter, *createDepCallback, nil, base)
 
-	case updateDep.FullCommand():
-		baseUrl := base_url(*hostUrl)
-		base := base_connection(baseUrl)
-		deployment_create_update(*updateDepTemplate, *updateDepParameter, *updateDepCallback, updateDepUuid, base)
+	// case updateDep.FullCommand():
+	// 	baseUrl := base_url(*hostUrl)
+	// 	base := base_connection(baseUrl)
+	// 	deployment_create_update(*updateDepTemplate, *updateDepParameter, *updateDepCallback, updateDepUuid, base)
 
-	case depTemplate.FullCommand():
-		baseUrl := base_url(*hostUrl)
-		base := base_connection(baseUrl)
-		deployment_get_template(*templateDepUuid, base)
+	// case depTemplate.FullCommand():
+	// 	baseUrl := base_url(*hostUrl)
+	// 	base := base_connection(baseUrl)
+	// 	deployment_get_template(*templateDepUuid, base)
 
-	case delDep.FullCommand():
-		baseUrl := base_url(*hostUrl)
-		base := base_connection(baseUrl)
-		deployment_delete(*delDepUuid, base)
+	// case delDep.FullCommand():
+	// 	baseUrl := base_url(*hostUrl)
+	// 	base := base_connection(baseUrl)
+	// 	deployment_delete(*delDepUuid, base)
 
-	case lsRes.FullCommand():
-		baseUrl := base_url(*hostUrl)
-		base := base_connection(baseUrl)
-		resources_list(*lsResDepUuid, base)
+	// case lsRes.FullCommand():
+	// 	baseUrl := base_url(*hostUrl)
+	// 	base := base_connection(baseUrl)
+	// 	resources_list(*lsResDepUuid, base)
 
-	case showRes.FullCommand():
-		baseUrl := base_url(*hostUrl)
-		base := base_connection(baseUrl)
-		resource_show(*showResDepUuid, *showResResUuid, base)
+	// case showRes.FullCommand():
+	// 	baseUrl := base_url(*hostUrl)
+	// 	base := base_connection(baseUrl)
+	// 	resource_show(*showResDepUuid, *showResResUuid, base)
 	}
 }
