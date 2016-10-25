@@ -1,9 +1,9 @@
 package main
 
 import (
-	"bufio"
+	// "bufio"
 	"crypto/tls"
-	"encoding/json"
+	// "encoding/json"
 	"fmt"
 	"github.com/dghubble/sling"
 	"gopkg.in/alecthomas/kingpin.v2"
@@ -13,394 +13,345 @@ import (
 	"strings"
 )
 
-const ttscVersion string = "0.5.0-alpha"
-const apiVersion string = "v1"
+const ttscVersion string = "1.0.0-alpha"
+const apiVersion string = "v2"
 
 var (
 	app     = kingpin.New("orchent", "The Token Translation Service (TTS) client.\nPlease store your access token in the 'TTSC_TOKEN' and the issuer url in the 'TTS_ISSUER' environment variable: 'export TTSC_TOKEN=<your access token>', 'export TTSC_ISSUER=<the issuer url>'").Version(ttscVersion)
 	hostUrl = app.Flag("url", "the base url of the TTS rest interface").Short('u').Required().String()
 
+	ttsInfo = app.Command("info", "get the information about the TTS running, e.g. its version")
+
 	lsProv = app.Command("lsprov", "list all OpenID Connect provider")
 
-	// showDep     = app.Command("depshow", "show a specific deployment")
-	// showDepUuid = showDep.Arg("uuid", "the uuid of the deployment to display").Required().String()
+	lsService = app.Command("lsserv", "list all service")
 
-	// createDep          = app.Command("depcreate", "create a new deployment")
-	// createDepCallback  = createDep.Flag("callback", "the callback url").Default("").String()
-	// createDepTemplate  = createDep.Arg("template", "the tosca template file").Required().File()
-	// createDepParameter = createDep.Arg("parameter", "the parameter to set (json object)").Required().String()
+	lsCred = app.Command("lscred", "list all credentials")
 
-	// updateDep          = app.Command("depupdate", "update the given deployment")
-	// updateDepCallback  = updateDep.Flag("callback", "the callback url").Default("").String()
-	// updateDepUuid      = updateDep.Arg("uuid", "the uuid of the deployment to update").Required().String()
-	// updateDepTemplate  = updateDep.Arg("template", "the tosca template file").Required().File()
-	// updateDepParameter = updateDep.Arg("parameter", "the parameter to set (json object)").Required().String()
+	basicRequest   = app.Command("request", "request a credential for a service")
+	basicRequestId = basicRequest.Arg("serviceId", "the id of the service to request a credential").Required().String()
 
-	// depTemplate     = app.Command("deptemplate", "show the template of the given deployment")
-	// templateDepUuid = depTemplate.Arg("uuid", "the uuid of the deployment to get the template").Required().String()
-
-	// delDep     = app.Command("depdel", "delete a given deployment")
-	// delDepUuid = delDep.Arg("uuid", "the uuid of the deployment to delete").Required().String()
-
-	// lsRes        = app.Command("resls", "list the resources of a given deployment")
-	// lsResDepUuid = lsRes.Arg("depployment uuid", "the uuid of the deployment").Required().String()
-
-	// showRes        = app.Command("resshow", "show a specific resource of a given deployment")
-	// showResDepUuid = showRes.Arg("deployment uuid", "the uuid of the deployment").Required().String()
-	// showResResUuid = showRes.Arg("resource uuid", "the uuid of the resource to show").Required().String()
+	revoke       = app.Command("revoke", "revoke a credential")
+	revokeCredId = revoke.Arg("credId", "the id of the credential to revoke").Required().String()
 )
 
-type OrchentError struct {
-	Code     int    `json:"code"`
-	Title1   string `json:"title"`
-	Title2   string `json:"error"`
-	Message1 string `json:"message"`
-	Message2 string `json:"error_description"`
+type TtsError struct {
+	Code    int    `json:"code"`
+	Title   string `json:"error"`
+	Message string `json:"message"`
 }
 
-func (e OrchentError) Error() string {
-	if e.Title1 != "" || e.Message1 != "" {
-		return fmt.Sprintf("Error '%s' [%d]: %s", e.Title1, e.Code, e.Message1)
-	} else if e.Title2 != "" || e.Message2 != "" {
-		return fmt.Sprintf("Error '%s': %s", e.Title2, e.Message2)
+func (e TtsError) Error() string {
+	if e.Title != "" || e.Message != "" {
+		return fmt.Sprintf("Error '%s' [%d]: %s", e.Title, e.Code, e.Message)
 	} else {
 		return ""
 	}
 }
 
-func is_error(e *OrchentError) bool {
+func is_error(e *TtsError) bool {
 	return e.Error() != ""
 }
 
-type OrchentLink struct {
-	Rel  string `json:"rel"`
-	HRef string `json:"href"`
+type TtsInfo struct {
+	Name         string `json:"display_name"`
+	LoggedIn     bool   `json:"logged_in"`
+	RedirectPath string `json:"redirect_path"`
+	Version      string `json:"version"`
 }
 
-func get_link(key string, links []OrchentLink) *OrchentLink {
-	for _, link := range links {
-		if link.Rel == key {
-			return &link
+func (info TtsInfo) String() string {
+	output := ""
+	output = output + fmt.Sprintf("TTS version: %s\n", info.Version)
+	output = output + fmt.Sprintf("  the redirect path is: %s\n", info.RedirectPath)
+	if info.LoggedIn {
+		output = output + fmt.Sprintf("this connection is logged in as %s\n", info.Name)
+	} else {
+		output = output + fmt.Sprintln("this connection is *NOT* logged in")
+	}
+	return output
+}
+
+type TtsProvider struct {
+	Id     string `json:"id"`
+	Issuer string `json:"issuer"`
+	Desc   string `json:"desc"`
+	Ready  bool   `json:"ready"`
+}
+
+func (prov TtsProvider) String() string {
+	ready := "NOT READY"
+	if prov.Ready {
+		ready = "ready"
+	}
+	output := fmt.Sprintf("Provider [%s][%s] %s (%s)", prov.Id, ready, prov.Desc, prov.Issuer)
+	return output
+}
+
+type TtsProviderList struct {
+	Provider []TtsProvider `json:"openid_provider_list"`
+}
+
+func (provList TtsProviderList) String() string {
+	output := ""
+	for _, provider := range provList.Provider {
+		output = output + fmt.Sprintln(provider)
+	}
+	return output
+}
+
+type TtsServiceParam struct {
+	Name      string `json:"name"`
+	Desc      string `json:"description"`
+	Type      string `json:"type"`
+	Mandatory bool   `json:"mandatory"`
+}
+
+func (param TtsServiceParam) String() string {
+	must := "Optional"
+	if param.Mandatory {
+		must = "MANDATORY"
+	}
+	output := fmt.Sprintf("%s Parameter [%s](%s): %s \n", must, param.Name, param.Type, param.Desc)
+	return output
+}
+
+type TtsService struct {
+	Id           string            `json:"id"`
+	Desc         string            `json:"description"`
+	Type         string            `json:"type"`
+	Host         string            `json:"host"`
+	Port         string            `json:"port"`
+	CredCount    int               `json:"cred_count"`
+	CredLimit    int               `json:"cred_limit"`
+	LimitReached bool              `json:"limit_reached"`
+	Enabled      bool              `json:"enabled"`
+	Params       []TtsServiceParam `json:"params"`
+}
+
+func (serv TtsService) String() string {
+	on := "disabled"
+	if serv.Enabled {
+		on = "enabled"
+	}
+	reached := ""
+	if serv.LimitReached {
+		reached = "(limit reached)"
+	}
+	output := fmt.Sprintf("Service [%s][%s] %s\n", serv.Id, on, serv.Desc)
+	output = output + fmt.Sprintf(" - credenitals: %d/%d %s\n", serv.CredCount, serv.CredLimit, reached)
+	if len(serv.Params) == 0 {
+		output = output + fmt.Sprintf(" - service has no parameter\n")
+	} else {
+		output = output + fmt.Sprintf(" - parameter:\n")
+		for _, param := range serv.Params {
+			output = output + fmt.Sprintf("    %s\n", param)
+		}
+
+	}
+	return output
+}
+
+type TtsServiceList struct {
+	Services []TtsService `json:"service_list"`
+}
+
+func (servList TtsServiceList) String() string {
+	output := "\n"
+	for _, service := range servList.Services {
+		output = output + fmt.Sprintln(service)
+		output = output + fmt.Sprintln("")
+	}
+	return output
+}
+
+type TtsCredentialEntry struct {
+	Name  string `json:"name"`
+	Type  string `json:"type"`
+	Value string `json:"value"`
+}
+
+func (entry TtsCredentialEntry) String() string {
+	output := fmt.Sprintf("[ %s (%s)] => %s", entry.Name, entry.Type, entry.Value)
+	return output
+}
+
+type TtsCredential struct {
+	Id        string               `json:"id"`
+	InfoId    string               `json:"cred_id"`
+	CTime     string               `json:"ctime"`
+	Interface string               `json:"interface"`
+	ServiceId string               `json:"service_id"`
+	Entries   []TtsCredentialEntry `json:"entries"`
+}
+
+func (cred TtsCredential) String() string {
+	output := ""
+	if cred.Id == "" {
+		output = fmt.Sprintf("Credential [%s]: for service with id [%s] created %s at '%s'", cred.InfoId, cred.ServiceId, cred.CTime, cred.Interface)
+	} else {
+		output = fmt.Sprintf("Credential [%s]:\n", cred.Id)
+		for _, entry := range cred.Entries {
+			output = output + fmt.Sprintf("%s\n", entry)
+		}
+
+	}
+	return output
+}
+
+type TtsCredentialResult struct {
+	Credential TtsCredential `json:"credential"`
+}
+
+func (res TtsCredentialResult) String() string {
+	output := fmt.Sprintln(res.Credential.String())
+	return output
+}
+
+type TtsCredentialList struct {
+	Credentials []TtsCredential `json:"credential_list"`
+}
+
+func (credList TtsCredentialList) String() string {
+	output := "\n"
+	for _, cred := range credList.Credentials {
+		output = output + fmt.Sprintln(cred)
+	}
+	output = output + "\n"
+	return output
+}
+
+type TtsCredentialRequest struct {
+	ServiceId string `json:"service_id"`
+}
+
+func copy_header(Name string) bool {
+	CopyHeader := []string{"User-Agent", "Authorization", "X-Openid-Connect-Issuer"}
+	for _, h := range CopyHeader {
+		if Name == h {
+			return true
 		}
 	}
+	return false
+}
+
+func redirect_check(req *http.Request, via []*http.Request) error {
+	Header := via[0].Header
+	ReqHeader := req.Header
+	for key, value := range Header {
+		if copy_header(key) {
+			ReqHeader.Set(key, value[0])
+		}
+	}
+	req.Header = ReqHeader
 	return nil
-}
-
-type OrchentPage struct {
-	Size          int `json:"size"`
-	TotalElements int `json:"totalElements"`
-	TotalPages    int `json:"totalPages"`
-	Number        int `json:"number"`
-}
-
-type OrchentDeployment struct {
-	Uuid         string                 `json:"uuid"`
-	CreationTime string                 `json:"creationTime"`
-	UpdateTime   string                 `json:"updateTime"`
-	Status       string                 `json:"status"`
-	StatusReason string                 `json:"statusReason"`
-	Task         string                 `json:"task"`
-	Callback     string                 `json:"callback"`
-	Output       map[string]interface{} `json:"output"`
-	Links        []OrchentLink          `json:"links"`
-}
-
-type OrchentResource struct {
-	Uuid          string        `json:"uuid"`
-	CreationTime  string        `json:"creationTime"`
-	State         string        `json:"state"`
-	ToscaNodeType string        `json:"toscaNodeType"`
-	ToscaNodeName string        `json:"toscaNodeName"`
-	RequiredBy    []string      `json:"requiredBy"`
-	Links         []OrchentLink `json:"links"`
-}
-
-type OrchentDeploymentList struct {
-	Deployments []OrchentDeployment `json:"content"`
-	Links       []OrchentLink       `json:"links"`
-	Page        OrchentPage         `json:"page"`
-}
-
-type OrchentResourceList struct {
-	Resources []OrchentResource `json:"content"`
-	Links     []OrchentLink     `json:"links"`
-	Page      OrchentPage       `json:"page"`
-}
-
-type OrchentCreateRequest struct {
-	Template   string                 `json:"template"`
-	Parameters map[string]interface{} `json:"parameters"`
-	Callback   string                 `json:"callback,omitempty"`
-}
-
-func (depList OrchentDeploymentList) String() string {
-	output := ""
-	output = output + fmt.Sprintf("  page: %s\n", depList.Page)
-	output = output + fmt.Sprintln("  links:")
-	for _, link := range depList.Links {
-		output = output + fmt.Sprintf("    %s\n", link)
-	}
-	output = output + fmt.Sprintln("\n")
-	for _, dep := range depList.Deployments {
-		output = output + fmt.Sprintln(dep)
-	}
-	return output
-}
-
-func (dep OrchentDeployment) String() string {
-	lines := []string{"Deployment [" + dep.Uuid + "]:",
-		"  status: " + dep.Status,
-		"  status reason: " + dep.StatusReason,
-		"  creation time: " + dep.CreationTime,
-		"  update time: " + dep.UpdateTime,
-		"  callback: " + dep.Callback,
-		"  output: " + fmt.Sprintf("%s", dep.Output),
-		"  links:"}
-	output := ""
-	for _, line := range lines {
-		output = output + fmt.Sprintf("%s\n", line)
-	}
-	for _, link := range dep.Links {
-		output = output + fmt.Sprintf("    %s\n", link)
-	}
-	return output
-}
-
-func (resList OrchentResourceList) String() string {
-	output := ""
-	output = output + fmt.Sprintf("  page: %s\n", resList.Page)
-	output = output + fmt.Sprintln("  links:")
-	for _, link := range resList.Links {
-		output = output + fmt.Sprintf("    %s\n", link)
-	}
-	for _, res := range resList.Resources {
-		output = output + fmt.Sprintln(res)
-	}
-	return output
-}
-
-func (res OrchentResource) String() string {
-	lines := []string{"Resource [" + res.Uuid + "]:",
-		"  creation time: " + res.CreationTime,
-		"  state: " + res.State,
-		"  toscaNodeType: " + res.ToscaNodeType,
-		"  toscaNodeName: " + res.ToscaNodeName,
-		"  requiredBy:"}
-	output := ""
-	for _, line := range lines {
-		output = output + fmt.Sprintf("%s\n", line)
-	}
-	for _, req := range res.RequiredBy {
-		output = output + fmt.Sprintf("    %s\n", req)
-	}
-	output = output + "  links:\n"
-	for _, link := range res.Links {
-		output = output + fmt.Sprintf("    %s\n", link)
-	}
-	return output
-}
-
-func (link OrchentLink) String() string {
-	return fmt.Sprintf("%s [%s]", link.Rel, link.HRef)
-}
-
-func (page OrchentPage) String() string {
-	return fmt.Sprintf("%d/%d [ #Elements: %d, size: %d ]", page.Number, page.TotalPages, page.TotalElements, page.Size)
 }
 
 func client() *http.Client {
 	_, set := os.LookupEnv("TTSC_INSECURE")
+	client := http.DefaultClient
 	if set {
 		tr := &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		}
-		return &http.Client{Transport: tr}
+		client = &http.Client{Transport: tr}
+	}
+	client.CheckRedirect = redirect_check
+	return client
+}
+
+func tts_info(base *sling.Sling) {
+	info := new(TtsInfo)
+	ttsError := new(TtsError)
+	fmt.Println("retrieving information:")
+	_, err := base.Get("./info").Receive(info, ttsError)
+	if err != nil {
+		fmt.Printf("error requesting information:\n %s\n", err)
+		return
+	}
+	if is_error(ttsError) {
+		fmt.Printf("error requesting information:\n %s\n", ttsError)
 	} else {
-		return http.DefaultClient
+		fmt.Println(info)
 	}
 }
 
 func provider_list(base *sling.Sling) {
-	base = base.Get(fmt.Sprintf("./%s/oidcp",apiVersion))
+	providerList := new(TtsProviderList)
+	ttsError := new(TtsError)
 	fmt.Println("retrieving provider list:")
-	receive_and_print_provider(base)
-}
-
-func receive_and_print_provider(complete *sling.Sling) {
-	providerList := new(TTScDeploymentList)
-	ttscError := new(TTScError)
-	_, err := complete.Receive(providerList, ttscError)
+	_, err := base.Get("./oidcp").Receive(providerList, ttsError)
 	if err != nil {
 		fmt.Printf("error requesting list of provider:\n %s\n", err)
 		return
 	}
-	if is_error(orchentError) {
-		fmt.Printf("error requesting list of provider:\n %s\n", ttscError)
+	if is_error(ttsError) {
+		fmt.Printf("error requesting list of provider:\n %s\n", ttsError)
 	} else {
-		links := deploymentList.Links
-		curPage := get_link("self", links)
-		nextPage := get_link("next", links)
-		lastPage := get_link("last", links)
-		fmt.Printf("%s\n", deploymentList)
-		if curPage != nil && nextPage != nil && lastPage != nil &&
-			curPage.HRef != lastPage.HRef {
-			receive_and_print_deploymentlist(base_connection(nextPage.HRef))
-		}
-
+		fmt.Println(providerList)
 	}
 }
 
-func deployment_create_update(templateFile *os.File, parameter string, callback string, depUuid *string, base *sling.Sling) {
-	var parameterMap map[string]interface{}
-	paramErr := json.Unmarshal([]byte(parameter), &parameterMap)
-	if paramErr != nil {
-		fmt.Printf("error parsing the parameter: %s\n", paramErr)
-		return
-	}
-
-	info, infoErr := templateFile.Stat()
-	if infoErr != nil {
-		fmt.Printf("error getting file size: %s\n", infoErr)
-		return
-	}
-	size := info.Size()
-	data := make([]byte, size)
-	count, readErr := templateFile.Read(data)
-	if readErr != nil || int64(count) < size {
-		fmt.Printf("error reading the file: %s\n  (read %d/%d)\n", readErr, count, size)
-		return
-	}
-	template := string(data[:count])
-	body := &OrchentCreateRequest{
-		Template:   template,
-		Parameters: parameterMap,
-		Callback:   callback,
-	}
-	deployment := new(OrchentDeployment)
-	orchentError := new(OrchentError)
-	action := ""
-	if depUuid == nil {
-		action = "creating"
-		base = base.Post("./deployments")
-	} else {
-		action = "updating"
-		base = base.Put("./deployments/" + *depUuid)
-	}
-	_, err := base.BodyJSON(body).Receive(deployment, orchentError)
+func service_list(base *sling.Sling) {
+	serviceList := new(TtsServiceList)
+	ttsError := new(TtsError)
+	fmt.Println("retrieving service list:")
+	_, err := base.Get("./service").Receive(serviceList, ttsError)
 	if err != nil {
-		fmt.Printf("error %s deployment:\n %s\n", action, err)
+		fmt.Printf("error requesting list of services:\n %s\n", err)
 		return
 	}
-	if is_error(orchentError) {
-		fmt.Printf("error %s deployment:\n %s\n", action, orchentError)
+	if is_error(ttsError) {
+		fmt.Printf("error requesting list of services:\n %s\n", ttsError)
 	} else {
-		if depUuid == nil {
-			fmt.Printf("%s\n", deployment)
-		} else {
-			fmt.Println("update of deployment %s successfully triggered\n", depUuid)
-		}
+		fmt.Println(serviceList)
 	}
 }
 
-func deployment_show(uuid string, base *sling.Sling) {
-	deployment := new(OrchentDeployment)
-	orchentError := new(OrchentError)
-	base = base.Get("./deployments/" + uuid)
-	_, err := base.Receive(deployment, orchentError)
+func credential_list(base *sling.Sling) {
+	List := new(TtsCredentialList)
+	ttsError := new(TtsError)
+	fmt.Println("retrieving credential list:")
+	_, err := base.Get("./credential").Receive(List, ttsError)
 	if err != nil {
-		fmt.Printf("error requesting provider %s:\n %s\n", uuid, err)
+		fmt.Printf("error requesting list of credentials:\n %s\n", err)
 		return
 	}
-	if is_error(orchentError) {
-		fmt.Printf("error requesting deployment %s:\n %s\n", uuid, orchentError)
+	if is_error(ttsError) {
+		fmt.Printf("error requesting list of credentials:\n %s\n", ttsError)
 	} else {
-		fmt.Printf("%s\n", deployment)
+		fmt.Println(List)
 	}
 }
 
-func deployment_get_template(uuid string, base *sling.Sling) {
-	orchentError := new(OrchentError)
-	req, err := base.Get("./deployments/" + uuid + "/template").Request()
+func credential_basic_request(serviceId string, base *sling.Sling) {
+	credential := new(TtsCredentialResult)
+	ttsError := new(TtsError)
+	fmt.Printf("requesting credential for service [%s]:\n", serviceId)
+	body := &TtsCredentialRequest{
+		ServiceId: serviceId,
+	}
+	_, err := base.Post("./credential").BodyJSON(body).Receive(credential, ttsError)
 	if err != nil {
-		fmt.Printf("error requesting template of %s:\n  %s\n", uuid, err)
+		fmt.Printf("error requesting of credential:\n %s\n", err)
 		return
 	}
-	// unable to use sling here as the return is plain text and not json
-	cl := client()
-	resp, err := cl.Do(req)
-	if err != nil {
-		fmt.Printf("error requesting template of %s:\n  %s\n", uuid, err)
-		return
-	}
-	defer resp.Body.Close()
-	if code := resp.StatusCode; 200 <= code && code <= 299 {
-		scanner := bufio.NewScanner(resp.Body)
-		scanner.Split(bufio.ScanBytes)
-		for scanner.Scan() {
-			fmt.Print(scanner.Text())
-		}
+	if is_error(ttsError) {
+		fmt.Printf("error requesting of credential:\n %s\n", ttsError)
 	} else {
-		json.NewDecoder(resp.Body).Decode(orchentError)
-		fmt.Printf("error requesting template of %s:\n  %s\n", uuid, orchentError)
+		fmt.Println(credential)
 	}
 }
 
-func deployment_delete(uuid string, base *sling.Sling) {
-	orchentError := new(OrchentError)
-	_, err := base.Delete("./deployments/"+uuid).Receive(nil, orchentError)
+func credential_revoke(credId string, base *sling.Sling) {
+	fmt.Printf("revoking credential [%s]:\n", credId)
+	path := fmt.Sprintf("./credential/%s", credId)
+	_, err := base.Delete(path).Receive(nil, nil)
 	if err != nil {
-		fmt.Printf("error deleting deployment %s:\n  %s\n", uuid, err)
+		fmt.Printf("error revoking of credential:\n %s\n", err)
 		return
-	}
-	if is_error(orchentError) {
-		fmt.Printf("error deleting deployment %s:\n %s\n", uuid, orchentError)
 	} else {
-		fmt.Printf("deletion of deployment %s successfully triggered\n", uuid)
-	}
-}
-
-func resources_list(depUuid string, base *sling.Sling) {
-	base = base.Get("./deployments/" + depUuid + "/resources")
-	fmt.Println("retrieving resource list:")
-	receive_and_print_resourcelist(depUuid, base)
-}
-
-func receive_and_print_resourcelist(depUuid string, complete *sling.Sling) {
-	resourceList := new(OrchentResourceList)
-	orchentError := new(OrchentError)
-	_, err := complete.Receive(resourceList, orchentError)
-	if err != nil {
-		fmt.Printf("error requesting list of resources for %s:\n %s\n", depUuid, err)
-		return
-	}
-	if is_error(orchentError) {
-		fmt.Printf("error requesting resource list for %s:\n %s\n", depUuid, orchentError)
-	} else {
-		links := resourceList.Links
-		curPage := get_link("self", links)
-		nextPage := get_link("next", links)
-		lastPage := get_link("last", links)
-		fmt.Printf("%s\n", resourceList)
-		if curPage != nil && nextPage != nil && lastPage != nil &&
-			curPage.HRef != lastPage.HRef {
-			receive_and_print_resourcelist(depUuid, base_connection(nextPage.HRef))
-		}
-	}
-}
-
-func resource_show(depUuid string, resUuid string, base *sling.Sling) {
-	resource := new(OrchentResource)
-	orchentError := new(OrchentError)
-	base = base.Get("./deployments/" + depUuid + "/resources/" + resUuid)
-	_, err := base.Receive(resource, orchentError)
-	if err != nil {
-		fmt.Printf("error requesting resources %s for %s:\n %s\n", resUuid, depUuid, err)
-		return
-	}
-	if is_error(orchentError) {
-		fmt.Printf("error requesting resource %s for %s:\n %s\n", resUuid, depUuid, orchentError)
-	} else {
-		fmt.Printf("%s\n", resource)
+		fmt.Println("credential sucessfully revoked")
 	}
 }
 
@@ -417,6 +368,7 @@ func base_connection(urlBase string) *sling.Sling {
 	} else {
 		fmt.Println(" ")
 		fmt.Println("*** WARNING: either access token or issuer has not been specified ***")
+		fmt.Println(" ")
 		return base
 	}
 }
@@ -426,50 +378,39 @@ func base_url(rawUrl string) string {
 		rawUrl = rawUrl + "/"
 	}
 	u, _ := url.Parse(rawUrl)
-	urlBase := u.Scheme + "://" + u.Host + u.Path
+	urlBase := u.Scheme + "://" + u.Host + u.Path + apiVersion + "/"
 	return urlBase
 }
 
 func main() {
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
+	case ttsInfo.FullCommand():
+		baseUrl := base_url(*hostUrl)
+		base := base_connection(baseUrl)
+		tts_info(base)
 	case lsProv.FullCommand():
 		baseUrl := base_url(*hostUrl)
 		base := base_connection(baseUrl)
 		provider_list(base)
 
-	// case showDep.FullCommand():
-	// 	baseUrl := base_url(*hostUrl)
-	// 	base := base_connection(baseUrl)
-	// 	deployment_show(*showDepUuid, base)
+	case lsService.FullCommand():
+		baseUrl := base_url(*hostUrl)
+		base := base_connection(baseUrl)
+		service_list(base)
 
-	// case createDep.FullCommand():
-	// 	baseUrl := base_url(*hostUrl)
-	// 	base := base_connection(baseUrl)
-	// 	deployment_create_update(*createDepTemplate, *createDepParameter, *createDepCallback, nil, base)
+	case lsCred.FullCommand():
+		baseUrl := base_url(*hostUrl)
+		base := base_connection(baseUrl)
+		credential_list(base)
 
-	// case updateDep.FullCommand():
-	// 	baseUrl := base_url(*hostUrl)
-	// 	base := base_connection(baseUrl)
-	// 	deployment_create_update(*updateDepTemplate, *updateDepParameter, *updateDepCallback, updateDepUuid, base)
+	case basicRequest.FullCommand():
+		baseUrl := base_url(*hostUrl)
+		base := base_connection(baseUrl)
+		credential_basic_request(*basicRequestId, base)
 
-	// case depTemplate.FullCommand():
-	// 	baseUrl := base_url(*hostUrl)
-	// 	base := base_connection(baseUrl)
-	// 	deployment_get_template(*templateDepUuid, base)
-
-	// case delDep.FullCommand():
-	// 	baseUrl := base_url(*hostUrl)
-	// 	base := base_connection(baseUrl)
-	// 	deployment_delete(*delDepUuid, base)
-
-	// case lsRes.FullCommand():
-	// 	baseUrl := base_url(*hostUrl)
-	// 	base := base_connection(baseUrl)
-	// 	resources_list(*lsResDepUuid, base)
-
-	// case showRes.FullCommand():
-	// 	baseUrl := base_url(*hostUrl)
-	// 	base := base_connection(baseUrl)
-	// 	resource_show(*showResDepUuid, *showResResUuid, base)
+	case revoke.FullCommand():
+		baseUrl := base_url(*hostUrl)
+		base := base_connection(baseUrl)
+		credential_revoke(*revokeCredId, base)
 	}
 }
