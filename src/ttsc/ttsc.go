@@ -17,7 +17,7 @@ const ttscVersion string = "1.0.0-alpha"
 const apiVersion string = "v2"
 
 var (
-	app     = kingpin.New("orchent", "The Token Translation Service (TTS) client.\nPlease store your access token in the 'TTSC_TOKEN' and the issuer url in the 'TTS_ISSUER' environment variable: 'export TTSC_TOKEN=<your access token>', 'export TTSC_ISSUER=<the issuer url>'").Version(ttscVersion)
+	app     = kingpin.New("ttsc", "The Token Translation Service (TTS) client.\nPlease store your access token in the 'TTSC_TOKEN' and the issuer url in the 'TTS_ISSUER' environment variable: 'export TTSC_TOKEN=<your access token>', 'export TTSC_ISSUER=<the issuer url>'").Version(ttscVersion)
 	hostUrl = app.Flag("url", "the base url of the TTS rest interface").Short('u').Required().String()
 
 	ttsInfo = app.Command("info", "get the information about the TTS running, e.g. its version")
