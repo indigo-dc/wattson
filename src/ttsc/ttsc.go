@@ -14,13 +14,13 @@ import (
 )
 
 const ttscVersion string = "1.0.0-alpha"
-const apiVersion string = "v2"
 
 var (
 	app     = kingpin.New("ttsc", "The Token Translation Service (TTS) client.\nPlease store your access token in the 'TTSC_TOKEN' and the issuer url in the 'TTS_ISSUER' environment variable: 'export TTSC_TOKEN=<your access token>', 'export TTSC_ISSUER=<the issuer url>'").Version(ttscVersion)
-	hostUrl = app.Flag("url", "the base url of the TTS rest interface").Short('u').Required().String()
+	hostUrl = app.Flag("url", "the base url of the TTS rest interface").Short('u').String()
 
-	ttsInfo = app.Command("info", "get the information about the TTS running, e.g. its version")
+	protVersion = app.Flag("protver", "protocol version to use (can be 0, 1 or 2)").Default("2").Short('p').Int()
+	ttsInfo     = app.Command("info", "get the information about the TTS running, e.g. its version")
 
 	lsProv = app.Command("lsprov", "list all OpenID Connect provider")
 
@@ -36,21 +36,20 @@ var (
 )
 
 type TtsError struct {
-	Code    int    `json:"code"`
-	Title   string `json:"error"`
-	Message string `json:"message"`
+	Result  string `json:"result"`
+	Message string `json:"user_msg"`
 }
 
 func (e TtsError) Error() string {
-	if e.Title != "" || e.Message != "" {
-		return fmt.Sprintf("Error '%s' [%d]: %s", e.Title, e.Code, e.Message)
+	if is_error(&e) {
+		return fmt.Sprintf("Error: %s", e.Message)
 	} else {
 		return ""
 	}
 }
 
 func is_error(e *TtsError) bool {
-	return e.Error() != ""
+	return e.Result == "error"
 }
 
 type TtsInfo struct {
@@ -84,7 +83,12 @@ func (prov TtsProvider) String() string {
 	if prov.Ready {
 		ready = "ready"
 	}
-	output := fmt.Sprintf("Provider [%s][%s] %s (%s)", prov.Id, ready, prov.Desc, prov.Issuer)
+	output := ""
+	if *protVersion == 2 {
+		output = fmt.Sprintf("Provider [%s][%s] %s (%s)", prov.Id, ready, prov.Desc, prov.Issuer)
+	} else {
+		output = fmt.Sprintf("Provider [%s] %s", prov.Id, prov.Issuer)
+	}
 	return output
 }
 
@@ -101,6 +105,7 @@ func (provList TtsProviderList) String() string {
 }
 
 type TtsServiceParam struct {
+	Key       string `json:"key"`
 	Name      string `json:"name"`
 	Desc      string `json:"description"`
 	Type      string `json:"type"`
@@ -112,21 +117,21 @@ func (param TtsServiceParam) String() string {
 	if param.Mandatory {
 		must = "MANDATORY"
 	}
-	output := fmt.Sprintf("%s Parameter [%s](%s): %s \n", must, param.Name, param.Type, param.Desc)
+	output := fmt.Sprintf("%s Parameter '%s' [%s]: %s (%s)\n", must, param.Name, param.Key, param.Desc, param.Type)
 	return output
 }
 
 type TtsService struct {
-	Id           string            `json:"id"`
-	Desc         string            `json:"description"`
-	Type         string            `json:"type"`
-	Host         string            `json:"host"`
-	Port         string            `json:"port"`
-	CredCount    int               `json:"cred_count"`
-	CredLimit    int               `json:"cred_limit"`
-	LimitReached bool              `json:"limit_reached"`
-	Enabled      bool              `json:"enabled"`
-	Params       []TtsServiceParam `json:"params"`
+	Id           string              `json:"id"`
+	Desc         string              `json:"description"`
+	Type         string              `json:"type"`
+	Host         string              `json:"host"`
+	Port         string              `json:"port"`
+	CredCount    int                 `json:"cred_count"`
+	CredLimit    int                 `json:"cred_limit"`
+	LimitReached bool                `json:"limit_reached"`
+	Enabled      bool                `json:"enabled"`
+	Params       [][]TtsServiceParam `json:"params"`
 }
 
 func (serv TtsService) String() string {
@@ -138,16 +143,27 @@ func (serv TtsService) String() string {
 	if serv.LimitReached {
 		reached = "(limit reached)"
 	}
-	output := fmt.Sprintf("Service [%s][%s] %s\n", serv.Id, on, serv.Desc)
-	output = output + fmt.Sprintf(" - credenitals: %d/%d %s\n", serv.CredCount, serv.CredLimit, reached)
-	if len(serv.Params) == 0 {
-		output = output + fmt.Sprintf(" - service has no parameter\n")
-	} else {
-		output = output + fmt.Sprintf(" - parameter:\n")
-		for _, param := range serv.Params {
-			output = output + fmt.Sprintf("    %s\n", param)
+	output := ""
+	if *protVersion == 2 {
+		output = fmt.Sprintf("Service [%s][%s] %s\n", serv.Id, on, serv.Desc)
+		output = output + fmt.Sprintf(" - credenitals: %d/%d %s\n", serv.CredCount, serv.CredLimit, reached)
+		if len(serv.Params) == 0 {
+			output = output + fmt.Sprintf(" - service has no parameter\n")
+		} else {
+			output = output + fmt.Sprintf(" - parameter sets:\n")
+			for _, set := range serv.Params {
+				if len(set) == 0 {
+					output = output + fmt.Sprintln("    Empty Parameter Set (allows basic request)")
+				} else {
+					output = output + fmt.Sprintln("    Parameter Set:")
+					for _, param := range set {
+						output = output + fmt.Sprintf("      %s\n", param)
+					}
+				}
+			}
 		}
-
+	} else {
+		output = fmt.Sprintf("Service [%s] %s - %s:%s", serv.Id, serv.Type, serv.Host, serv.Port)
 	}
 	return output
 }
@@ -176,6 +192,24 @@ func (entry TtsCredentialEntry) String() string {
 	return output
 }
 
+type TtsV1Credential struct {
+	Id        string `json:"cred_id"`
+	CredState string `json:"cred_state"`
+	CTime     string `json:"ctime"`
+	Interface string `json:"interface"`
+	ServiceId string `json:"service_id"`
+}
+type TtsV1CredWrap struct {
+	Credential TtsV1Credential `json:"id"`
+}
+
+func (credWrap TtsV1CredWrap) String() string {
+	output := ""
+	cred := credWrap.Credential
+	output = fmt.Sprintf("Credential [%s]{%s}: for service with id [%s] created %s at '%s'", cred.Id, cred.CredState, cred.ServiceId, cred.CTime, cred.Interface)
+	return output
+}
+
 type TtsCredential struct {
 	Id        string               `json:"id"`
 	InfoId    string               `json:"cred_id"`
@@ -187,10 +221,14 @@ type TtsCredential struct {
 
 func (cred TtsCredential) String() string {
 	output := ""
-	if cred.Id == "" {
+	if cred.Id == "" && *protVersion == 2 {
 		output = fmt.Sprintf("Credential [%s]: for service with id [%s] created %s at '%s'", cred.InfoId, cred.ServiceId, cred.CTime, cred.Interface)
 	} else {
-		output = fmt.Sprintf("Credential [%s]:\n", cred.Id)
+		if *protVersion == 2 {
+			output = fmt.Sprintf("Credential [%s]:\n", cred.Id)
+		} else {
+			output = fmt.Sprintln("Credential:")
+		}
 		for _, entry := range cred.Entries {
 			output = output + fmt.Sprintf("%s\n", entry)
 		}
@@ -208,16 +246,36 @@ func (res TtsCredentialResult) String() string {
 	return output
 }
 
-type TtsCredentialList struct {
+type TtsCredentialListV1 struct {
+	Credentials []TtsV1CredWrap `json:"credential_list"`
+}
+type TtsCredentialListV2 struct {
 	Credentials []TtsCredential `json:"credential_list"`
 }
 
-func (credList TtsCredentialList) String() string {
+func (credList TtsCredentialListV2) String() string {
 	output := "\n"
-	for _, cred := range credList.Credentials {
-		output = output + fmt.Sprintln(cred)
+	if len(credList.Credentials) == 0 {
+		output = "*** no credentials ***"
+	} else {
+		for _, cred := range credList.Credentials {
+			output = output + fmt.Sprintln(cred)
+		}
+		output = output + "\n"
 	}
-	output = output + "\n"
+	return output
+}
+
+func (credList TtsCredentialListV1) String() string {
+	output := "\n"
+	if len(credList.Credentials) == 0 {
+		output = "*** no credentials ***"
+	} else {
+		for _, cred := range credList.Credentials {
+			output = output + fmt.Sprintln(cred)
+		}
+		output = output + "\n"
+	}
 	return output
 }
 
@@ -309,38 +367,73 @@ func service_list(base *sling.Sling) {
 }
 
 func credential_list(base *sling.Sling) {
-	List := new(TtsCredentialList)
+	ListV2 := new(TtsCredentialListV2)
+	ListV1 := new(TtsCredentialListV1)
 	ttsError := new(TtsError)
+
 	fmt.Println("retrieving credential list:")
-	_, err := base.Get("./credential").Receive(List, ttsError)
-	if err != nil {
-		fmt.Printf("error requesting list of credentials:\n %s\n", err)
-		return
-	}
-	if is_error(ttsError) {
-		fmt.Printf("error requesting list of credentials:\n %s\n", ttsError)
+	if *protVersion == 2 {
+		_, err := base.Get("./credential").Receive(ListV2, ttsError)
+
+		if err != nil {
+			fmt.Printf("error requesting list of credentials:\n %s\n", err)
+			return
+		}
+		if is_error(ttsError) {
+			fmt.Printf("error requesting list of credentials:\n %s\n", ttsError)
+		} else {
+			fmt.Println(ListV2)
+		}
 	} else {
-		fmt.Println(List)
+		_, err := base.Get("./credential").Receive(ListV1, ttsError)
+
+		if err != nil {
+			fmt.Printf("error requesting list of credentials:\n %s\n", err)
+			return
+		}
+		if is_error(ttsError) {
+			fmt.Printf("error requesting list of credentials:\n %s\n", ttsError)
+		} else {
+			fmt.Println(ListV1)
+		}
 	}
 }
 
 func credential_basic_request(serviceId string, base *sling.Sling) {
 	credential := new(TtsCredentialResult)
+	oldCred := new([]TtsCredentialEntry)
 	ttsError := new(TtsError)
+
 	fmt.Printf("requesting credential for service [%s]:\n", serviceId)
 	body := &TtsCredentialRequest{
 		ServiceId: serviceId,
 	}
-	_, err := base.Post("./credential").BodyJSON(body).Receive(credential, ttsError)
-	if err != nil {
-		fmt.Printf("error requesting of credential:\n %s\n", err)
-		return
-	}
-	if is_error(ttsError) {
-		fmt.Printf("error requesting of credential:\n %s\n", ttsError)
+
+	if *protVersion == 2 {
+		_, err := base.Post("./credential").BodyJSON(body).Receive(credential, ttsError)
+		if err != nil {
+			fmt.Printf("error requesting of credential:\n %s\n", err)
+			return
+		}
+		if is_error(ttsError) {
+			fmt.Printf("error requesting of credential (TTS):\n %s\n", ttsError)
+		} else {
+			fmt.Println(credential)
+		}
 	} else {
-		fmt.Println(credential)
+		_, err := base.Post("./credential").BodyJSON(body).Receive(oldCred, ttsError)
+		if err != nil {
+			fmt.Printf("error requesting of credential:\n %s\n", err)
+			return
+		}
+		if is_error(ttsError) {
+			fmt.Printf("error requesting of credential:\n %s\n", ttsError)
+		} else {
+			credential.Credential.Entries = *oldCred
+			fmt.Println(credential)
+		}
 	}
+
 }
 
 func credential_revoke(credId string, base *sling.Sling) {
@@ -374,43 +467,64 @@ func base_connection(urlBase string) *sling.Sling {
 }
 
 func base_url(rawUrl string) string {
+	apiPath := "v2/"
+	if *protVersion == 0 {
+		apiPath = ""
+	} else if *protVersion == 1 {
+		apiPath = "v1/"
+	}
 	if !strings.HasSuffix(rawUrl, "/") {
 		rawUrl = rawUrl + "/"
 	}
 	u, _ := url.Parse(rawUrl)
-	urlBase := u.Scheme + "://" + u.Host + u.Path + apiVersion + "/"
+	urlBase := u.Scheme + "://" + u.Host + u.Path + "api/" + apiPath
+	fmt.Printf("connecting to %s using protocol version %d \n", urlBase, *protVersion)
 	return urlBase
+}
+
+func get_base_url() string {
+	urlValue, urlSet := os.LookupEnv("TTSC_URL")
+	baseUrl := ""
+	if *hostUrl != "" {
+		baseUrl = base_url(*hostUrl)
+	} else if urlSet {
+		baseUrl = base_url(urlValue)
+	} else {
+		fmt.Println("*** ERROR: No url given! Either set the environment varible 'TTSC_URL' or use the --url flag")
+		os.Exit(1)
+	}
+	return baseUrl
+}
+
+func connection() *sling.Sling {
+	baseurl := get_base_url()
+	conn := base_connection(baseurl)
+	return conn
 }
 
 func main() {
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
 	case ttsInfo.FullCommand():
-		baseUrl := base_url(*hostUrl)
-		base := base_connection(baseUrl)
+		base := connection()
 		tts_info(base)
 	case lsProv.FullCommand():
-		baseUrl := base_url(*hostUrl)
-		base := base_connection(baseUrl)
+		base := connection()
 		provider_list(base)
 
 	case lsService.FullCommand():
-		baseUrl := base_url(*hostUrl)
-		base := base_connection(baseUrl)
+		base := connection()
 		service_list(base)
 
 	case lsCred.FullCommand():
-		baseUrl := base_url(*hostUrl)
-		base := base_connection(baseUrl)
+		base := connection()
 		credential_list(base)
 
 	case basicRequest.FullCommand():
-		baseUrl := base_url(*hostUrl)
-		base := base_connection(baseUrl)
+		base := connection()
 		credential_basic_request(*basicRequestId, base)
 
 	case revoke.FullCommand():
-		baseUrl := base_url(*hostUrl)
-		base := base_connection(baseUrl)
+		base := connection()
 		credential_revoke(*revokeCredId, base)
 	}
 }
