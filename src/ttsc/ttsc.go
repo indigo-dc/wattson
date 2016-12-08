@@ -131,6 +131,8 @@ type TtsService struct {
 	CredLimit    int                 `json:"cred_limit"`
 	LimitReached bool                `json:"limit_reached"`
 	Enabled      bool                `json:"enabled"`
+	Authorized   bool                `json:"authorized"`
+	Tooltip   string                `json:"authz_tooltip"`
 	Params       [][]TtsServiceParam `json:"params"`
 }
 
@@ -139,13 +141,22 @@ func (serv TtsService) String() string {
 	if serv.Enabled {
 		on = "enabled"
 	}
+	auth := "NOT AUTHORIZED"
+	tooltip := serv.Tooltip
+	if serv.Authorized {
+		auth = "authorized"
+		tooltip = ""
+	}
 	reached := ""
 	if serv.LimitReached {
 		reached = "(limit reached)"
 	}
 	output := ""
 	if *protVersion == 2 {
-		output = fmt.Sprintf("Service [%s][%s] %s\n", serv.Id, on, serv.Desc)
+		output = fmt.Sprintf("Service [%s][%s/%s] %s\n", serv.Id, on, auth, serv.Desc)
+		if tooltip != "" {
+			output =  output + fmt.Sprintf("   %s\n", tooltip)
+		}
 		output = output + fmt.Sprintf(" - credenitals: %d/%d %s\n", serv.CredCount, serv.CredLimit, reached)
 		if len(serv.Params) == 0 {
 			output = output + fmt.Sprintf(" - service has no parameter\n")
