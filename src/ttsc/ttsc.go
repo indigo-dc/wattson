@@ -517,7 +517,7 @@ func credential_revoke(credId string, base *sling.Sling) {
 		if !*jsonOutput {
 			fmt.Println("credential sucessfully revoked")
 		} else {
-			fmt.Println("{'result':'ok'}")
+			fmt.Println("{\"result\":\"ok\"}")
 		}
 
 	}
