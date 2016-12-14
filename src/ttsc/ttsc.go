@@ -3,7 +3,7 @@ package main
 import (
 	// "bufio"
 	"crypto/tls"
-	// "encoding/json"
+	"encoding/json"
 	"fmt"
 	"github.com/dghubble/sling"
 	"gopkg.in/alecthomas/kingpin.v2"
@@ -16,10 +16,11 @@ import (
 const ttscVersion string = "1.0.0-alpha"
 
 var (
-	app     = kingpin.New("ttsc", "The Token Translation Service (TTS) client.\nPlease store your access token in the 'TTSC_TOKEN' and the issuer url in the 'TTS_ISSUER' environment variable: 'export TTSC_TOKEN=<your access token>', 'export TTSC_ISSUER=<the issuer url>'").Version(ttscVersion)
+	app     = kingpin.New("ttsc", "The Token Translation Service (TTS) client.\nPlease store your access token in the 'TTSC_TOKEN' and the issuer url in the 'TTSC_ISSUER' environment variable: 'export TTSC_TOKEN=<your access token>', 'export TTSC_ISSUER=<the issuer url>'. The url of the TTS can be stored in the environment variable 'TTSC_URL': export TTSC_URL=<url of the tts>").Version(ttscVersion)
 	hostUrl = app.Flag("url", "the base url of the TTS rest interface").Short('u').String()
 
 	protVersion = app.Flag("protver", "protocol version to use (can be 0, 1 or 2)").Default("2").Short('p').Int()
+	jsonOutput  = app.Flag("json", "enable json output").Short('j').Bool()
 	ttsInfo     = app.Command("info", "get the information about the TTS running, e.g. its version")
 
 	lsProv = app.Command("lsprov", "list all OpenID Connect provider")
@@ -61,12 +62,17 @@ type TtsInfo struct {
 
 func (info TtsInfo) String() string {
 	output := ""
-	output = output + fmt.Sprintf("TTS version: %s\n", info.Version)
-	output = output + fmt.Sprintf("  the redirect path is: %s\n", info.RedirectPath)
-	if info.LoggedIn {
-		output = output + fmt.Sprintf("this connection is logged in as %s\n", info.Name)
+	if *jsonOutput {
+		json, _ := json.Marshal(info)
+		output = string(json)
 	} else {
-		output = output + fmt.Sprintln("this connection is *NOT* logged in")
+		output = output + fmt.Sprintf("TTS version: %s\n", info.Version)
+		output = output + fmt.Sprintf("  the redirect path is: %s\n", info.RedirectPath)
+		if info.LoggedIn {
+			output = output + fmt.Sprintf("this connection is logged in as %s\n", info.Name)
+		} else {
+			output = output + fmt.Sprintln("this connection is *NOT* logged in")
+		}
 	}
 	return output
 }
@@ -79,15 +85,20 @@ type TtsProvider struct {
 }
 
 func (prov TtsProvider) String() string {
-	ready := "NOT READY"
-	if prov.Ready {
-		ready = "ready"
-	}
 	output := ""
-	if *protVersion == 2 {
-		output = fmt.Sprintf("Provider [%s][%s] %s (%s)", prov.Id, ready, prov.Desc, prov.Issuer)
+	if *jsonOutput {
+		json, _ := json.Marshal(prov)
+		output = string(json)
 	} else {
-		output = fmt.Sprintf("Provider [%s] %s", prov.Id, prov.Issuer)
+		ready := "NOT READY"
+		if prov.Ready {
+			ready = "ready"
+		}
+		if *protVersion == 2 {
+			output = fmt.Sprintf("Provider [%s][%s] %s (%s)", prov.Id, ready, prov.Desc, prov.Issuer)
+		} else {
+			output = fmt.Sprintf("Provider [%s] %s", prov.Id, prov.Issuer)
+		}
 	}
 	return output
 }
@@ -98,8 +109,13 @@ type TtsProviderList struct {
 
 func (provList TtsProviderList) String() string {
 	output := ""
-	for _, provider := range provList.Provider {
-		output = output + fmt.Sprintln(provider)
+	if *jsonOutput {
+		json, _ := json.Marshal(provList)
+		output = string(json)
+	} else {
+		for _, provider := range provList.Provider {
+			output = output + fmt.Sprintln(provider)
+		}
 	}
 	return output
 }
@@ -132,11 +148,12 @@ type TtsService struct {
 	LimitReached bool                `json:"limit_reached"`
 	Enabled      bool                `json:"enabled"`
 	Authorized   bool                `json:"authorized"`
-	Tooltip   string                `json:"authz_tooltip"`
+	Tooltip      string              `json:"authz_tooltip"`
 	Params       [][]TtsServiceParam `json:"params"`
 }
 
 func (serv TtsService) String() string {
+	output := ""
 	on := "disabled"
 	if serv.Enabled {
 		on = "enabled"
@@ -151,11 +168,10 @@ func (serv TtsService) String() string {
 	if serv.LimitReached {
 		reached = "(limit reached)"
 	}
-	output := ""
 	if *protVersion == 2 {
 		output = fmt.Sprintf("Service [%s][%s/%s] %s\n", serv.Id, on, auth, serv.Desc)
 		if tooltip != "" {
-			output =  output + fmt.Sprintf("   %s\n", tooltip)
+			output = output + fmt.Sprintf("   %s\n", tooltip)
 		}
 		output = output + fmt.Sprintf(" - credenitals: %d/%d %s\n", serv.CredCount, serv.CredLimit, reached)
 		if len(serv.Params) == 0 {
@@ -184,10 +200,16 @@ type TtsServiceList struct {
 }
 
 func (servList TtsServiceList) String() string {
-	output := "\n"
-	for _, service := range servList.Services {
-		output = output + fmt.Sprintln(service)
-		output = output + fmt.Sprintln("")
+	output := ""
+	if *jsonOutput {
+		json, _ := json.Marshal(servList)
+		output = string(json)
+	} else {
+		output = "\n"
+		for _, service := range servList.Services {
+			output = output + fmt.Sprintln(service)
+			output = output + fmt.Sprintln("")
+		}
 	}
 	return output
 }
