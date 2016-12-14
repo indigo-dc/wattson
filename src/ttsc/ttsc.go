@@ -373,7 +373,7 @@ func client() *http.Client {
 func tts_info(base *sling.Sling) {
 	info := new(TtsInfo)
 	ttsError := new(TtsError)
-	if ! *jsonOutput {
+	if !*jsonOutput {
 		fmt.Println("retrieving information:")
 	}
 	resp, err := base.Get("./info").Receive(info, ttsError)
@@ -392,7 +392,9 @@ func tts_info(base *sling.Sling) {
 func provider_list(base *sling.Sling) {
 	providerList := new(TtsProviderList)
 	ttsError := new(TtsError)
-	fmt.Println("retrieving provider list:")
+	if !*jsonOutput {
+		fmt.Println("retrieving provider list:")
+	}
 	resp, err := base.Get("./oidcp").Receive(providerList, ttsError)
 	if err != nil {
 		fmt.Printf("error requesting list of provider:\n %s\n", err)
@@ -409,7 +411,7 @@ func provider_list(base *sling.Sling) {
 func service_list(base *sling.Sling) {
 	serviceList := new(TtsServiceList)
 	ttsError := new(TtsError)
-	if ! *jsonOutput {
+	if !*jsonOutput {
 		fmt.Println("retrieving service list:")
 	}
 	resp, err := base.Get("./service").Receive(serviceList, ttsError)
@@ -430,7 +432,7 @@ func credential_list(base *sling.Sling) {
 	ListV1 := new(TtsCredentialListV1)
 	ttsError := new(TtsError)
 
-	if ! *jsonOutput {
+	if !*jsonOutput {
 		fmt.Println("retrieving credential list:")
 	}
 	if *protVersion == 2 {
@@ -465,7 +467,7 @@ func credential_basic_request(serviceId string, base *sling.Sling) {
 	oldCred := new([]TtsCredentialEntry)
 	ttsError := new(TtsError)
 
-	if ! *jsonOutput {
+	if !*jsonOutput {
 		fmt.Printf("requesting credential for service [%s]:\n", serviceId)
 	}
 	body := &TtsCredentialRequest{
@@ -502,7 +504,7 @@ func credential_basic_request(serviceId string, base *sling.Sling) {
 }
 
 func credential_revoke(credId string, base *sling.Sling) {
-	if ! *jsonOutput {
+	if !*jsonOutput {
 		fmt.Printf("revoking credential [%s]:\n", credId)
 	}
 	path := fmt.Sprintf("./credential/%s", credId)
@@ -546,7 +548,7 @@ func base_url(rawUrl string) string {
 	}
 	u, _ := url.Parse(rawUrl)
 	urlBase := u.Scheme + "://" + u.Host + u.Path + "api/" + apiPath
-	if ! *jsonOutput {
+	if !*jsonOutput {
 		fmt.Printf("connecting to %s using protocol version %d \n", urlBase, *protVersion)
 	}
 	return urlBase
