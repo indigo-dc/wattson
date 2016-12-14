@@ -1,12 +1,12 @@
 package main
 
 import (
-	// "bufio"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"github.com/dghubble/sling"
 	"gopkg.in/alecthomas/kingpin.v2"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -21,6 +21,7 @@ var (
 
 	protVersion = app.Flag("protver", "protocol version to use (can be 0, 1 or 2)").Default("2").Short('p').Int()
 	jsonOutput  = app.Flag("json", "enable json output").Short('j').Bool()
+	debugOutput = app.Flag("debug", "enable debug output").Bool()
 	ttsInfo     = app.Command("info", "get the information about the TTS running, e.g. its version")
 
 	lsProv = app.Command("lsprov", "list all OpenID Connect provider")
@@ -287,27 +288,39 @@ type TtsCredentialListV2 struct {
 }
 
 func (credList TtsCredentialListV2) String() string {
-	output := "\n"
-	if len(credList.Credentials) == 0 {
-		output = "*** no credentials ***"
+	output := ""
+	if *jsonOutput {
+		json, _ := json.Marshal(credList)
+		output = string(json)
 	} else {
-		for _, cred := range credList.Credentials {
-			output = output + fmt.Sprintln(cred)
+		output = "\n"
+		if len(credList.Credentials) == 0 {
+			output = "*** no credentials ***"
+		} else {
+			for _, cred := range credList.Credentials {
+				output = output + fmt.Sprintln(cred)
+			}
+			output = output + "\n"
 		}
-		output = output + "\n"
 	}
 	return output
 }
 
 func (credList TtsCredentialListV1) String() string {
-	output := "\n"
-	if len(credList.Credentials) == 0 {
-		output = "*** no credentials ***"
+	output := ""
+	if *jsonOutput {
+		json, _ := json.Marshal(credList)
+		output = string(json)
 	} else {
-		for _, cred := range credList.Credentials {
-			output = output + fmt.Sprintln(cred)
+		output = "\n"
+		if len(credList.Credentials) == 0 {
+			output = "*** no credentials ***"
+		} else {
+			for _, cred := range credList.Credentials {
+				output = output + fmt.Sprintln(cred)
+			}
+			output = output + "\n"
 		}
-		output = output + "\n"
 	}
 	return output
 }
@@ -355,11 +368,12 @@ func tts_info(base *sling.Sling) {
 	info := new(TtsInfo)
 	ttsError := new(TtsError)
 	fmt.Println("retrieving information:")
-	_, err := base.Get("./info").Receive(info, ttsError)
+	resp, err := base.Get("./info").Receive(info, ttsError)
 	if err != nil {
 		fmt.Printf("error requesting information:\n %s\n", err)
 		return
 	}
+	display_response(resp)
 	if is_error(ttsError) {
 		fmt.Printf("error requesting information:\n %s\n", ttsError)
 	} else {
@@ -371,11 +385,12 @@ func provider_list(base *sling.Sling) {
 	providerList := new(TtsProviderList)
 	ttsError := new(TtsError)
 	fmt.Println("retrieving provider list:")
-	_, err := base.Get("./oidcp").Receive(providerList, ttsError)
+	resp, err := base.Get("./oidcp").Receive(providerList, ttsError)
 	if err != nil {
 		fmt.Printf("error requesting list of provider:\n %s\n", err)
 		return
 	}
+	display_response(resp)
 	if is_error(ttsError) {
 		fmt.Printf("error requesting list of provider:\n %s\n", ttsError)
 	} else {
@@ -387,11 +402,12 @@ func service_list(base *sling.Sling) {
 	serviceList := new(TtsServiceList)
 	ttsError := new(TtsError)
 	fmt.Println("retrieving service list:")
-	_, err := base.Get("./service").Receive(serviceList, ttsError)
+	resp, err := base.Get("./service").Receive(serviceList, ttsError)
 	if err != nil {
 		fmt.Printf("error requesting list of services:\n %s\n", err)
 		return
 	}
+	display_response(resp)
 	if is_error(ttsError) {
 		fmt.Printf("error requesting list of services:\n %s\n", ttsError)
 	} else {
@@ -406,24 +422,24 @@ func credential_list(base *sling.Sling) {
 
 	fmt.Println("retrieving credential list:")
 	if *protVersion == 2 {
-		_, err := base.Get("./credential").Receive(ListV2, ttsError)
-
+		resp, err := base.Get("./credential").Receive(ListV2, ttsError)
 		if err != nil {
 			fmt.Printf("error requesting list of credentials:\n %s\n", err)
 			return
 		}
+		display_response(resp)
 		if is_error(ttsError) {
 			fmt.Printf("error requesting list of credentials:\n %s\n", ttsError)
 		} else {
 			fmt.Println(ListV2)
 		}
 	} else {
-		_, err := base.Get("./credential").Receive(ListV1, ttsError)
-
+		resp, err := base.Get("./credential").Receive(ListV1, ttsError)
 		if err != nil {
 			fmt.Printf("error requesting list of credentials:\n %s\n", err)
 			return
 		}
+		display_response(resp)
 		if is_error(ttsError) {
 			fmt.Printf("error requesting list of credentials:\n %s\n", ttsError)
 		} else {
@@ -443,22 +459,24 @@ func credential_basic_request(serviceId string, base *sling.Sling) {
 	}
 
 	if *protVersion == 2 {
-		_, err := base.Post("./credential").BodyJSON(body).Receive(credential, ttsError)
+		resp, err := base.Post("./credential").BodyJSON(body).Receive(credential, ttsError)
 		if err != nil {
 			fmt.Printf("error requesting of credential:\n %s\n", err)
 			return
 		}
+		display_response(resp)
 		if is_error(ttsError) {
 			fmt.Printf("error requesting of credential (TTS):\n %s\n", ttsError)
 		} else {
 			fmt.Println(credential)
 		}
 	} else {
-		_, err := base.Post("./credential").BodyJSON(body).Receive(oldCred, ttsError)
+		resp, err := base.Post("./credential").BodyJSON(body).Receive(oldCred, ttsError)
 		if err != nil {
 			fmt.Printf("error requesting of credential:\n %s\n", err)
 			return
 		}
+		display_response(resp)
 		if is_error(ttsError) {
 			fmt.Printf("error requesting of credential:\n %s\n", ttsError)
 		} else {
@@ -472,11 +490,12 @@ func credential_basic_request(serviceId string, base *sling.Sling) {
 func credential_revoke(credId string, base *sling.Sling) {
 	fmt.Printf("revoking credential [%s]:\n", credId)
 	path := fmt.Sprintf("./credential/%s", credId)
-	_, err := base.Delete(path).Receive(nil, nil)
+	resp, err := base.Delete(path).Receive(nil, nil)
 	if err != nil {
 		fmt.Printf("error revoking of credential:\n %s\n", err)
 		return
 	} else {
+		display_response(resp)
 		fmt.Println("credential sucessfully revoked")
 	}
 }
@@ -513,6 +532,15 @@ func base_url(rawUrl string) string {
 	urlBase := u.Scheme + "://" + u.Host + u.Path + "api/" + apiPath
 	fmt.Printf("connecting to %s using protocol version %d \n", urlBase, *protVersion)
 	return urlBase
+}
+
+func display_response(resp *http.Response) {
+	if *debugOutput {
+		fmt.Printf("DEBUG: %s\n", *resp)
+		body, _ := ioutil.ReadAll(resp.Body)
+		resp.Body.Close()
+		fmt.Printf("DEBUG: %s\n", body)
+	}
 }
 
 func get_base_url() string {
