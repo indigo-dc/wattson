@@ -276,7 +276,13 @@ type TtsCredentialResult struct {
 }
 
 func (res TtsCredentialResult) String() string {
-	output := fmt.Sprintln(res.Credential.String())
+	output := ""
+	if *jsonOutput {
+		json, _ := json.Marshal(res)
+		output = string(json)
+	} else {
+		output = fmt.Sprintln(res.Credential.String())
+	}
 	return output
 }
 
@@ -367,7 +373,9 @@ func client() *http.Client {
 func tts_info(base *sling.Sling) {
 	info := new(TtsInfo)
 	ttsError := new(TtsError)
-	fmt.Println("retrieving information:")
+	if ! *jsonOutput {
+		fmt.Println("retrieving information:")
+	}
 	resp, err := base.Get("./info").Receive(info, ttsError)
 	if err != nil {
 		fmt.Printf("error requesting information:\n %s\n", err)
@@ -401,7 +409,9 @@ func provider_list(base *sling.Sling) {
 func service_list(base *sling.Sling) {
 	serviceList := new(TtsServiceList)
 	ttsError := new(TtsError)
-	fmt.Println("retrieving service list:")
+	if ! *jsonOutput {
+		fmt.Println("retrieving service list:")
+	}
 	resp, err := base.Get("./service").Receive(serviceList, ttsError)
 	if err != nil {
 		fmt.Printf("error requesting list of services:\n %s\n", err)
@@ -420,7 +430,9 @@ func credential_list(base *sling.Sling) {
 	ListV1 := new(TtsCredentialListV1)
 	ttsError := new(TtsError)
 
-	fmt.Println("retrieving credential list:")
+	if ! *jsonOutput {
+		fmt.Println("retrieving credential list:")
+	}
 	if *protVersion == 2 {
 		resp, err := base.Get("./credential").Receive(ListV2, ttsError)
 		if err != nil {
@@ -453,7 +465,9 @@ func credential_basic_request(serviceId string, base *sling.Sling) {
 	oldCred := new([]TtsCredentialEntry)
 	ttsError := new(TtsError)
 
-	fmt.Printf("requesting credential for service [%s]:\n", serviceId)
+	if ! *jsonOutput {
+		fmt.Printf("requesting credential for service [%s]:\n", serviceId)
+	}
 	body := &TtsCredentialRequest{
 		ServiceId: serviceId,
 	}
@@ -488,7 +502,9 @@ func credential_basic_request(serviceId string, base *sling.Sling) {
 }
 
 func credential_revoke(credId string, base *sling.Sling) {
-	fmt.Printf("revoking credential [%s]:\n", credId)
+	if ! *jsonOutput {
+		fmt.Printf("revoking credential [%s]:\n", credId)
+	}
 	path := fmt.Sprintf("./credential/%s", credId)
 	resp, err := base.Delete(path).Receive(nil, nil)
 	if err != nil {
@@ -530,7 +546,9 @@ func base_url(rawUrl string) string {
 	}
 	u, _ := url.Parse(rawUrl)
 	urlBase := u.Scheme + "://" + u.Host + u.Path + "api/" + apiPath
-	fmt.Printf("connecting to %s using protocol version %d \n", urlBase, *protVersion)
+	if ! *jsonOutput {
+		fmt.Printf("connecting to %s using protocol version %d \n", urlBase, *protVersion)
+	}
 	return urlBase
 }
 
