@@ -1,0 +1,25 @@
+
+UNRELEASED
+
+  * fix json output
+  * change credential revoke result to json
+  * remove information output when using json
+  * add missing json output for credential
+  * add debug output
+  * add json output, fix #2
+  * add authorized and tooltip from TTS
+  * ensure codestyle
+  * copy TTSc documentation from TTS
+  * fix naming issue
+  * basic client capabilities and info endpoint
+  * add basic help
+  * adjust authorization
+  * add initial documentation
+  * initial commit
+  * Initial commit
+
+  - Bas Wegh <bas.wegh@kit.edu>
+
+-- Bas Wegh <bas.wegh@kit.edu>; Wed, 14 Dec 2016 11:15:09 +0100
+
+

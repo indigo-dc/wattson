@@ -20,8 +20,9 @@ _cgo_export.*
 _testmain.go
 
 ttsc
-src/github.com
-src/gopkg.in
+pkg-build/
+vendor/
+
 
 *.exe
 *.test
