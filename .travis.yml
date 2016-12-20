@@ -6,6 +6,7 @@ env:
   - MYAPP=ttsc
 before_install:
 - sudo apt-get -qq update
+- sudo apt-get install glide -y
 - mkdir -p ${GOPATH}/bin
 install:
 - cd $GOPATH/src/github.com/indigo-dc/$MYAPP
