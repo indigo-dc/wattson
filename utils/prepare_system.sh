@@ -58,8 +58,12 @@ case "$DISTRIBUTION" in
 esac
 export GOPATH=`pwd`
 export PATH="$GOPATH/bin:$PATH"
+GO_VERSION=`go version`
 echo "GOPATH: $GOPATH"
 echo "PATH: $PATH"
+echo "GO VERSION: $GO_VERSION"
+echo " "
+
 
 rm -rf $GOPATH
 mkdir -p $GOPATH
