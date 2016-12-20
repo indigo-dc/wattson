@@ -98,12 +98,14 @@ case "$DISTRIBUTION" in
         ;;
 esac
 glide install
+tree
 go install
 cd ..
 git clone https://github.com/mh-cbon/changelog.git
 cd changelog
 git checkout 0.0.24
 glide install
+tree
 go install
 
 echo " "
