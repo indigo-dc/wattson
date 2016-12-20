@@ -1,35 +1,27 @@
 language: go
 go:
-  - tip
-
+- tip
 env:
   global:
-    - MYAPP=ttsc
-
+  - MYAPP=ttsc
 before_install:
-  - sudo apt-get -qq update
-  - mkdir -p ${GOPATH}/bin
-
+- sudo apt-get -qq update
+- mkdir -p ${GOPATH}/bin
 install:
-  - cd $GOPATH/src/github.com/indigo-dc/$MYAPP
-  - go install
-
+- cd $GOPATH/src/github.com/indigo-dc/$MYAPP
+- go install
 script: go run main.go
-
 before_deploy:
-  - mkdir -p build/{386,amd64}
-  - GOOS=linux GOARCH=386 go build -o build/386/$MYAPP main.go
-  - GOOS=linux GOARCH=amd64 go build -o build/amd64/$MYAPP main.go
-  - curl -L https://raw.githubusercontent.com/indigo-dc/ttsc/master/scripts/build_pkg.sh | GH=indigo-dc/$MYAPP sh -xe
+- mkdir -p build/{386,amd64}
+- GOOS=linux GOARCH=386 go build -o build/386/$MYAPP main.go
+- GOOS=linux GOARCH=amd64 go build -o build/amd64/$MYAPP main.go
+- curl -L https://raw.githubusercontent.com/indigo-dc/ttsc/master/scripts/build_pkg.sh
+  | GH=indigo-dc/$MYAPP sh -xe
 
 deploy:
   provider: releases
   api_key:
-    secure: xxxxxxx
-  file_glob: true
-  file:
-    - $MYAPP-386.deb
-    - $MYAPP-amd64.deb
-  skip_cleanup: true
+    secure: kLaPvRro2sg/rcbEMGMnJIeiHS+HHAbj6TGU3hwUyz+OA4UKS8I7eyoqh82Db6Hb7K7uhCh1js/bLR/DtiI9PKlo8OX+7UIoFW780bv4DS1ikVhQF1qPAluHCHjvXEn0GZ5CN+d9+fB+bc2PlUBQqwHVUc1zG6HBSQ/kIzmCgV/8MHRt1E6e5uhtDyF7aMsChn/LuSzSuR1e7QOfWhIyaRMpSp2S92L5pd+arIqY64zn0FmLV4VBOnCFcbvRFL04cFsmvmfBrNIkm5382LCVbeVEEceLwnF7NeKtFpp+SWpOwL1CgVtKNqyS8kl+iI/gxXSWQZAFV0gFfz7rRt2ucFN2yio1A/pNgOPZW4Am95uGT1Ij1LhlE+uyvNCprVtJvYSf6dT4vpn2Duh3L+7pHcSIFtwKKkLjzb5ZutyRg42be7xECSCCJA7BRFUeUb7nEvi6G2l5TCw68ZCvl7GmWiBw0JKN16HlYxE/e/VuY3aAnXvqQOwPKRuntl1gk1W6t+Ad9Dy9lbLhwEPDMtazvvuMt1/9FPm0pPwzAxxgOtjIztAE3BtUdY9LL1pQn/yU/yK1+pIxLTyvhat49w6IwtFCZfkMVJL102Md/a3vzRdn5UF4+zbTM5rnBdSrCKaiWa4CrvjVFHWlBbnrhvyomDO0jq8mUB0+XwGV+SYljtk=
+  file: ttsc-amd64.deb
   on:
-    tags: true
+    repo: indigo-dc/ttsc
