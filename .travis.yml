@@ -6,7 +6,7 @@ env:
   - MYAPP=ttsc
 before_install:
 - sudo apt-get -qq update
-- sudo apt-get install glide -y
+- sudo apt-get install glide
 - mkdir -p ${GOPATH}/bin
 install:
 - cd $GOPATH/src/github.com/indigo-dc/$MYAPP
@@ -14,8 +14,7 @@ install:
 - go install
 script: go run main.go
 before_deploy:
-- mkdir -p build/{386,amd64}
-- GOOS=linux GOARCH=386 go build -o build/386/$MYAPP main.go
+- mkdir -p build/amd64
 - GOOS=linux GOARCH=amd64 go build -o build/amd64/$MYAPP main.go
 - curl -L https://raw.githubusercontent.com/indigo-dc/ttsc/master/scripts/build_pkg.sh
   | GH=indigo-dc/$MYAPP sh -xe
