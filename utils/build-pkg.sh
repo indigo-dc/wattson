@@ -14,6 +14,7 @@ cd $GOPATH/src/github.com/indigo-dc/ttsc
 pwd
 cp -v $SOURCE_DIR/* .
 glide install
+cp -r vendor/* "$GOPATH/src"
 rm -fr pkg-build/*
 mkdir -p pkg-build/amd64
 GOOS=linux GOARCH=amd64 go build -o build/amd64/ttsc ttsc.go

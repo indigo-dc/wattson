@@ -1,2 +1,2 @@
 #!/bin/bash
-sudo apt-get -y install golang build-essential tree
+sudo apt-get -y install build-essential lintian

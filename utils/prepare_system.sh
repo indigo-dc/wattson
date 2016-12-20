@@ -45,6 +45,11 @@ echo "*** creating go environment ***"
 cd $UTILS_DIR/../..
 rm -rf ttsc_build_env
 mkdir ttsc_build_env
+curl -O https://storage.googleapis.com/golang/go1.6.4.linux-amd64.tar.gz
+tar -xzf go1.6.4.linux-amd64.tar.gz
+sudo mv go /usr/local
+export PATH="/usr/local/go/bin:$PATH"
+
 cd ttsc_build_env
 case "$DISTRIBUTION" in
     debian)
@@ -102,14 +107,14 @@ case "$DISTRIBUTION" in
         ;;
 esac
 glide install
-tree
+cp -r vendor/* "$GOPATH/src"
 go install
 cd ..
 git clone https://github.com/mh-cbon/changelog.git
 cd changelog
 git checkout 0.0.24
 glide install
-tree
+cp -r vendor/* "$GOPATH/src"
 go install
 
 echo " "
