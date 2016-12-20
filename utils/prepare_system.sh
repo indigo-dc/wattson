@@ -42,7 +42,21 @@ esac
 echo " "
 echo " "
 echo "*** creating go environment ***"
-export GOPATH="/tmp/go-ttsc"
+cd $UTILS_DIR/../..
+rm -rf ttsc_build_env
+mkdir ttsc_build_env
+cd ttsc_build_env
+case "$DISTRIBUTION" in
+    debian)
+        mkdir deb
+        cd deb
+        ;;
+    centos)
+        mkdir rpm
+        cd rpm
+        ;;
+esac
+export GOPATH=`pwd`
 export PATH="$GOPATH/bin:$PATH"
 echo "GOPATH: $GOPATH"
 echo "PATH: $PATH"
