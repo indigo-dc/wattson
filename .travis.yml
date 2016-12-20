@@ -9,6 +9,7 @@ before_install:
 - mkdir -p ${GOPATH}/bin
 install:
 - cd $GOPATH/src/github.com/indigo-dc/$MYAPP
+- glide install
 - go install
 script: go run main.go
 before_deploy:

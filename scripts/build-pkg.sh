@@ -11,7 +11,7 @@
 REPO=`echo ${GH} | cut -d '/' -f 2`
 USER=`echo ${GH} | cut -d '/' -f 1`
 
-sudo apt-get install build-essential lintian -y
+sudo apt-get install glide build-essential lintian -y
 
 if type "changelog" > /dev/null; then
   echo "changelog already installed"
