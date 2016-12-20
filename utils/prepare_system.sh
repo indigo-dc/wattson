@@ -34,9 +34,6 @@ case "$DISTRIBUTION" in
     debian)
         ./debian_install_packages.sh
         ;;
-    ubuntu)
-        ./ubuntu_install_packages.sh
-        ;;
     centos)
         ./centos_install_packages.sh
         ;;

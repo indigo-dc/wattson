@@ -1,0 +1,21 @@
+{
+  "name": "ttsc",
+  "version": "!version!",
+  "arch": "!arch!",
+  "release": "1",
+  "summary": "INDIGO Token Translation Service client",
+  "group": "Applications/Internet",
+  "license": "LICENSE",
+  "url": "http://github.com/indigo-dc/ttsc",
+  "description": "a command line client to use with the INDOGO TTS",
+  "changelog-cmd": "changelog rpm",
+  "files": [
+    {
+      "from": "build/!arch!/ttsc",
+      "to": "%{_bindir}/",
+      "base": "build/!arch!/",
+      "type": ""
+    }
+  ]
+  ]
+}

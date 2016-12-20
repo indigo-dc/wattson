@@ -17,16 +17,18 @@ glide install
 rm -fr pkg-build/*
 mkdir -p pkg-build/amd64
 GOOS=linux GOARCH=amd64 go build -o build/amd64/ttsc ttsc.go
-
-
 case $DISTRIBUTION in
     debian)
-        go-bin-deb generate -a amd64 --version ${VERSION} -w pkg-build/amd64/ -o ttsc-${VERSION}-amd64.deb
+        GO_BIN="go-bin-deb"
+        PKG="ttsc-$VERSION-amd64.deb"
         ;;
     centos)
-        echo "not yet supported"
+        GO_BIN="go-bin-rpm"
+        PKG="ttsc-$VERSION.el7.centos.x86_64.rpm"
         ;;
 esac
+$GO_BIN generate -a amd64 --version ${VERSION} -w pkg-build/amd64 -o ${PKG}
+
 echo " "
 echo " "
 echo " *** DONE ***"
