@@ -21,13 +21,15 @@ case $DISTRIBUTION in
     debian)
         GO_BIN="go-bin-deb"
         PKG="ttsc-$VERSION-amd64.deb"
+        PFLAG="-w"
         ;;
     centos)
         GO_BIN="go-bin-rpm"
         PKG="ttsc-$VERSION.el7.centos.x86_64.rpm"
+        PFLAG="-b"
         ;;
 esac
-$GO_BIN generate -a amd64 --version ${VERSION} -w pkg-build/amd64 -o ${PKG}
+$GO_BIN generate -a amd64 --version ${VERSION} ${PFLAG} pkg-build/amd64 -o ${PKG}
 
 echo " "
 echo " "
