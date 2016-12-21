@@ -252,7 +252,45 @@ An entry consists of:
 
 So each entry is of the following format: ` [ <name> (<type>) ] => <value> `
 
-#### Advanced requests *TODO*
+#### Advanced requests
+Advanced request only have one additional parameter, the parameter object. The parameter object
+is a string containing a json encoded object.
+
+The parameter object MUST contain all mandatory fields of one parameter set.
+As an example take thes parameter sets from this service:
+```
+Service [indigo_ssh][enabled/authorized] Example Ssh Key Deployment
+ - credenitals: 0/1
+ - parameter sets:
+    Parameter Set:
+      MANDATORY Parameter 'public key' [pub_key]: the public key to upload to the service (textarea)
+
+    Empty Parameter Set (allows basic request)`
+```
+It contains two sets, one empty set and one non empty set. The advanced request is only needed for
+non empty sets.
+Each non-emtpy set contains of a list of parameter with the following information:
+ - Mandatory or not
+ - Parameter name
+ - Parameter key
+ - Parameter description
+
+ The parameter object *MUST* contain at least every mandatory parameter of a chosen set.
+ The parameter object is then created using the 'parameter key' as key and the wanted
+ value as value.
+
+ For example:
+ ```
+ { "pub_key":"ssh-rsa AAAAAAAAAABBBBBBBBBBBBBBBCCCCCCCCCCCCCCCCCCC me@computer"}
+ ```
+
+ the request in total would be:
+ ```
+ ttsc request indigo_ssh '{ "pub_key":"ssh-rsa AAAAAAAAAABBBBBBBBBBBBBBBCCCCCCCCCCCCCCCCCCC me@computer"}'
+ ```
+ (note the single quotes and double quotes, using them as above makes your life easier)
+
+
 ### Revoking a credential (revoke) *AUTH*
 Revoking is very similar to requesting, yet instead of providing the service for
 which to request a credential, the credential id is provided.
