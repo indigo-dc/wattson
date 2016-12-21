@@ -30,8 +30,9 @@ var (
 
 	lsCred = app.Command("lscred", "list all credentials")
 
-	basicRequest   = app.Command("request", "request a credential for a service")
-	basicRequestId = basicRequest.Arg("serviceId", "the id of the service to request a credential").Required().String()
+	request   = app.Command("request", "request a credential for a service")
+	requestId = request.Arg("serviceId", "the id of the service to request a credential").Required().String()
+	requestParams = request.Arg("parameter", "a string containing a json object with the parameter").String()
 
 	revoke       = app.Command("revoke", "revoke a credential")
 	revokeCredId = revoke.Arg("credId", "the id of the credential to revoke").Required().String()
@@ -333,6 +334,7 @@ func (credList TtsCredentialListV1) String() string {
 
 type TtsCredentialRequest struct {
 	ServiceId string `json:"service_id"`
+	Params (map[string]interface{}) `json:"params"`
 }
 
 func copy_header(Name string) bool {
@@ -462,16 +464,28 @@ func credential_list(base *sling.Sling) {
 	}
 }
 
-func credential_basic_request(serviceId string, base *sling.Sling) {
+func credential_request(serviceId string, parameter string, base *sling.Sling) {
 	credential := new(TtsCredentialResult)
 	oldCred := new([]TtsCredentialEntry)
 	ttsError := new(TtsError)
+	var parameterMap map[string]interface{}
 
+	if parameter == "" {
+		parameter = "{}"
+	}
+
+	paramErr := json.Unmarshal([]byte(parameter), &parameterMap)
+	if paramErr != nil {
+		fmt.Printf("error parsing the parameter: %s\n", paramErr)
+		return
+	}
 	if !*jsonOutput {
 		fmt.Printf("requesting credential for service [%s]:\n", serviceId)
 	}
+
 	body := &TtsCredentialRequest{
 		ServiceId: serviceId,
+		Params: parameterMap,
 	}
 
 	if *protVersion == 2 {
@@ -605,9 +619,9 @@ func main() {
 		base := connection()
 		credential_list(base)
 
-	case basicRequest.FullCommand():
+	case request.FullCommand():
 		base := connection()
-		credential_basic_request(*basicRequestId, base)
+		credential_request(*requestId, *requestParams, base)
 
 	case revoke.FullCommand():
 		base := connection()
