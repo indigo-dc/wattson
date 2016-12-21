@@ -66,7 +66,7 @@ export TTSC_TOKEN=<the access token>
 ```
 
 ## Flags
-Flags can be used with any command and chagne the behaviour of the client:
+Flags can be used with any command and change the behaviour of the client:
 - `--json` encode the received information using json
 - `--protver=X` set the protocol version to X, supported are 0, 1 and 2 (default: 2)
   - 0 is used for TTS up to version 0.4.x
@@ -79,7 +79,6 @@ Flags can be used with any command and chagne the behaviour of the client:
 Each Description will include a sample call and its output.
 
 ### Get Information about the Token Translation Service (info)
-call
 ```
 $ ttsc info
 connecting to https://tts-dev.data.kit.edu/api/v2/ using protocol version 2
@@ -88,13 +87,13 @@ TTS version: 1.0.0
   the redirect path is: /oidc
 this connection is *NOT* logged in
 ```
-The so the TTS is running version 1.0.0 and we are not in an active session,
-this is also the case when the access token is present.
+The TTS is running version 1.0.0 and we are not in an active session,
+this is always the case when using the REST interface.
 
 
 ### List all OpenId Provider (lsprov)
 The `lsprov` command lists all the OpenId Providers a TTS instance supports. The call
-only needs no additional parameter:
+needs no additional parameter:
 ```
 $ ttsc lsprov
 connecting to https://tts-dev.data.kit.edu/api/v2/ using protocol version 2
@@ -250,7 +249,8 @@ An entry consists of:
  - a name
  - its type
  - and the value
-` [ <name> (<type>) ] => <value> `
+
+So each entry is of the following format: ` [ <name> (<type>) ] => <value> `
 
 #### Advanced requests *TODO*
 ### Revoking a credential (revoke) *AUTH*
