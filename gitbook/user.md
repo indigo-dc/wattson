@@ -2,130 +2,278 @@
 Using ttsc is made as easy as possible. In case you are lost orchent provides a lot of
 information with its 'help' command, just call `ttsc --help`.
 
+```
+$ ttsc --help
+usage: ttsc [<flags>] <command> [<args> ...]
+
+The Token Translation Service (TTS) client. Please store your access token in the 'TTSC_TOKEN' and the issuer url in the 'TTSC_ISSUER' environment variable:
+'export TTSC_TOKEN=<your access token>', 'export TTSC_ISSUER=<the issuer url>'. The url of the TTS can be stored in the environment variable 'TTSC_URL':
+export TTSC_URL=<url of the tts>
+
+Flags:
+      --help       Show context-sensitive help (also try --help-long and --help-man).
+      --version    Show application version.
+  -u, --url=URL    the base url of the TTS rest interface
+  -p, --protver=2  protocol version to use (can be 0, 1 or 2)
+  -j, --json       enable json output
+      --debug      enable debug output
+
+Commands:
+  help [<command>...]
+    Show help.
+
+  info
+    get the information about the TTS running, e.g. its version
+
+  lsprov
+    list all OpenID Connect provider
+
+  lsserv
+    list all service
+
+  lscred
+    list all credentials
+
+  request <serviceId>
+    request a credential for a service
+
+  revoke <credId>
+    revoke a credential
+```
+
+If you have questions or found a bug please always include the version on your description:
+```
+ttsc --version
+```
+
+
+## Client setup
+The client is configured by environment variables:
+ - TTSC_URL: the base url of the Token Translation service, e.g. `https://tts-dev.data.kit.edu`
+ - TTSC_ISSUER: the issuer url of the OpenId Connect provider in use (see `lsprov`)
+ - TTSC_TOKEN: the access token received from the OpenId Connect provider, e.g. using the web interface of the Token Translation Service
+
+All commands need at least the `TTSC_URL` to be set:
+```
+export TTSC_URL=https://tts-dev.data.kit.edu
+```
+change the url to fit your needs, alternativly the `--url` flag can be used.
+
+Issuer and Token are set the same way, commands that need those to be set are marked with *AUTH*:
+```
+export TTSC_ISSUER=<the issuer url>
+export TTSC_TOKEN=<the access token>
+```
+
+## Flags
+Flags can be used with any command and chagne the behaviour of the client:
+- `--json` encode the received information using json
+- `--protver=X` set the protocol version to X, supported are 0, 1 and 2 (default: 2)
+  - 0 is used for TTS up to version 0.4.x
+  - 1 is used for TTS 1.0.x to get the same results as with 0.4.x
+  - 2 is the newest api version for TTS 1.0.x
+- `--debug` enabled debug output
+- `--url` set the base url of the TTS, usually done by setting the environment variable `TTSC_URL`
+
+## Commands
+Each Description will include a sample call and its output.
+
+### Get Information about the Token Translation Service (info)
+call
+```
+$ ttsc info
+connecting to https://tts-dev.data.kit.edu/api/v2/ using protocol version 2
+retrieving information:
+TTS version: 1.0.0
+  the redirect path is: /oidc
+this connection is *NOT* logged in
+```
+The so the TTS is running version 1.0.0 and we are not in an active session,
+this is also the case when the access token is present.
+
+
 ### List all OpenId Provider (lsprov)
 The `lsprov` command lists all the OpenId Providers a TTS instance supports. The call
-only needs one additional parameter, which is the host used for connection:
+only needs no additional parameter:
 ```
-$ ttsc lsprov localhost:8080
-"B4A_HsU" "https://accounts.google.com"
-"HdPwOcc" "https://iam-test.indigo-datacloud.eu/"
+$ ttsc lsprov
+connecting to https://tts-dev.data.kit.edu/api/v2/ using protocol version 2
+retrieving provider list:
+Provider [iam][ready] INDIGO Datacloud Identity and Access Management (IAM) (https://iam-test.indigo-datacloud.eu/)
+Provider [hbp][ready] Human Brain Project (HBP) (https://services.humanbrainproject.eu/oidc/)
+Provider [eudat][ready] EUDAT (b2access) (https://b2access.eudat.eu:8443/oauth2)
+Provider [egi][ready] European Grid Infrastracture (Development) (https://aai-dev.egi.eu/oidc/)
+Provider [google][ready] Google, the well known search giant (https://accounts.google.com)
 ```
-In the example above, the TTS at localhost on port 8080 will be asked to list all
-the OpenId Connect Providers it supports. For this example, the TTS supports two
-OpenId Connect providers, accounts.google.com and iam-test.indigo-datacloud.eu.
-In front of the issuer URLs are the randomly generated ids, which are used by
-the TTS to refer to the provider.
+In the example above, the TTS will be asked to list all the OpenId Connect Providers it supports.
+For this example, the TTS supports four OpenId Connect providers.
+Each line contains multiple information:
+ - the id of the provider e.g. 'iam'
+ - the status, in this example 'ready'
+ - a descriptive name, e.g. 'INDIGO Datacloud Identity and Access Management (IAM)'
+ - the issuer url of the provider, here 'https://iam-test.indigo-datacloud.eu/'
 
 
-### List all service for a user (lsserv)
+### List all service for a user (lsserv) *AUTH*
 The `lsserv` command lists all the services the TTS supports for the authorized
-user. The needed parameters are the host of the TTS instance, the access token to
-authorize, and the issuer of the token, so the TTS can verify the token at the
-issuer.
+user.
 ```
-$ ttsc lsserv localhost:8080 ya29.[...]jksb https://accounts.google.com
-"opennebula" "opennebula" "oneserver.com" "2633"
-"ssh" "ssh" "localhost" "22"
-```
-In this example the token has been shortened as they are usually pretty long.
-Instead of the URL of the issuer, *https://accounts.google.com* in this case,
-also the id *B4A_HsU* can be used.
+$ ttsc lsserv
+connecting to https://tts-dev.data.kit.edu/api/v2/ using protocol version 2
+retrieving service list:
 
-The result is a list of the services for which the user can request credentials.
-Each line represents one service, listing the id, the type, the host, and
-the port of the service. For requesting a credential, one needs the first column,
-the id.
+Service [x509][enabled/authorized] A simple, non trusted demo CA
+ - credenitals: 0/3
+ - parameter sets:
+    Empty Parameter Set (allows basic request)
 
-### Listing all credentials (lscred)
-The `lscred` command lists all currently requested credentials. For this, as
-with `lsserv`, the user needs to be authorized by an access token and also needs
-to provide the issuer, so the TTS can verify the access token.
-```
-$ ttsc lscred localhost:8080 ya29.[...]jksb https://accounts.google.com
-{"cred_id":"qO10bfakPev2sbW5NWJuCdFKhzG4FmqV","cred_state":"TTS_CW0MSwY5qBZBPnn4JKpadDqCldrwdia8","ctime":1467877711,"interface":"web interface","service_id":"ssh"}
-{"cred_id":"2GkzHmpkgVwywckpeIiP-5dpEes0iESe","cred_state":"TTS_nI4XxZPkLCLaQuTCkroAQfGaRVkXCcvY","ctime":1467878940,"interface":"REST interface","service_id":"ssh_tts"}
-```
-The output is one json object per credential.
-- `cred_id` is the internal identifier of the credential within TTS.
-- `cred_state` is the state returned by the plugin and stored at the TTS to
-  revoke the credential.
-- `ctime` is the creation time
-- `interface` indicates with which interface the credential was created, it is either a
-  web or the REST interface
-- `service_id` is the id of the service and links to the service list (see `lsserv`).
 
-### Requesting a credential (request)
-The `request` command is used to request a credential from the Token Translation
-Service. To create a credential, the TTS needs the service_id as well as an access
-token and the issuer as a parameter.
+Service [aarc_ssh][enabled/NOT AUTHORIZED] Ssh Key Deployment on multiple VMs
+   Your authorisation is insufficient for this service. This may be due to missing group membership or due to a too low Level of Assurance (LoA) (Yes, we already support that kind of stuff ;D)
+ - credenitals: 0/1
+ - parameter sets:
+    Parameter Set:
+      MANDATORY Parameter 'public key' [pub_key]: the public key to upload to the service (textarea)
+
+    Empty Parameter Set (allows basic request)
+
+
+Service [indigo_ssh][enabled/authorized] Example Ssh Key Deployment
+ - credenitals: 0/1
+ - parameter sets:
+    Parameter Set:
+      MANDATORY Parameter 'public key' [pub_key]: the public key to upload to the service (textarea)
+
+    Empty Parameter Set (allows basic request)
+
+
+Service [HBP_S3][enabled/NOT AUTHORIZED] Self Service for your HBP-S3 storage keys
+   The S3 key creation is only active when you are a member of the HBP group 'hbp-kit-cloud'
+ - credenitals: 0/1
+ - parameter sets:
+    Empty Parameter Set (allows basic request)
+
+
+Service [info][enabled/authorized] Simple Info Service
+ - credenitals: 0/1
+ - parameter sets:
+    Empty Parameter Set (allows basic request)
+```
+The result is a list of the services for which the user might be allowed to request credentials.
+Each block represents one service.
+Listing:
+ - The Id, e.g. x509
+ - The status and authorization status, e.g. enabled/authorized
+ - The number of credentials requested and the max. allowed, e.g. 0/3
+ - The parameter sets, these are used for advanced requests, desribed later
+   - Only if the "Empty Parameter Set (allows basic request)" is present a basic request is possible
+
+To request a credential, one needs the id, in the first square brackets and one parameter set,
+which can be empty.
+
+### Listing all credentials (lscred) *AUTH*
+The `lscred` command lists all currently requested credentials.
+```
+$ ttsc lscred
+connecting to https://tts-dev.data.kit.edu/api/v2/ using protocol version 2
+retrieving credential list:
+
+Credential [9dfa0900-930b-462c-8144-da9dd1aa37d2]: for service with id [info] created Wed, 21 Dec 2016 10:48:51 GMT at 'Web App'
 
 ```
-$ ttsc request localhost:8080 ssh ya29.[...]jksb https://accounts.google.com
-[
-{"name":"id","type":"text","value":"2GkzHmpkgVwywckpeIiP-5dpEes0iESe"},
-{"name":"Username","type":"text","value":"tts_user"},
-{"cols":"64","name":"Private Key","rows":"30","type":"textfile",
-"value":["-----BEGIN RSA PRIVATE KEY-----\n
-Proc-Type: 4,ENCRYPTED\n
-DEK-Info: AES-128-CBC,9232C34FB60C8FCA22E2F8B7832542E9\n
-\n
-jq6DLWAT5p+joZ+3PIXjNL4qHViWxVihQnmMMZolLkXMvWPUGJyXdPp4ZnsuKfdO\n
-thRcmzkG0+wyx/cgXkPTQcbMB9A6R7rxRk3ylsBOUwbmeD64s+P46QDLwOQsO8In\n
-N0ujyT7pCuUEem0kiAzER6OKNjkzN7d1U98TPNKRI214tUYqSRkxZGp+bSzvglbN\n
-EfkY5vcmI4LGkcSn0JfoGbohanc46IDn241xCJOtCKBFs4l+lk+kE+19yPObpULt\n
-9aN7JKV5OO0yNkt52YtEDdM9S0PpkSCZHvC9DkKFn1U8/bnLcaCONUZZt+PZcMQ4\n
-LNTg/Dz+xt7dBVRP7ZfN/+39+8sDSk59VG9D3xrogk89HYkkobqyxL3IKPShExwY\n
-PDnfapjCU5OFmIBRk380Lgv68PJBMk3U2/+skMjLmyxDr9x67LPQ4VO9SBHNXJF3\n
-FJcbu7Nj+5NLNON5eS+JEzfJfQ+vV9DIBveDGGkA6puv0+sO9CzpMzuubWFUXzwy\n
-fSoHzfLJbUldMqAb3AfDdcvyuPDKOd4FKSOEuwx6IlH5VxxJmqXAKQwou1xZ9yxP\n
-ebjnyEl5AhL8njN88bAoe0Tq1k5c6/P+mi/+OHpAh+I9eC/PYlCSTgqm65+9kuGX\n
-tWsSYVHf6XDExpmRvNUx+n5Ld6CllJdFss1JL0r3QoDB1ZN+LhAi6nRrHBZG/8yp\n
-proSstlFhP+otgqFkVIE86vZsyh6QhKiOEOiIWQLDCuSzxfI0/qUh+9CC2kKN+7S\n
-c/i3m3DQS0GWEnq1vWjdroRgorE4AFoJQy2EHpSZn9vmGYgvVdX5wxAqWw2VXSpt\n
-e+FqFeV35PISB5IxpEhmozhtyvAX21Chox/G6ZlNUFXdC/IGbm42NvtufV/vNlEz\n
-oeZHyaX+n0PzEpPFdRruQx3rnPxnjkNLh6XEAU8AbRlCag1qPGan6VQnVImeIVPZ\n
-aW/oiX9bxn84mxK4U4NLTBY8oLr175AfMgFsfSvOqYf4dK1fsu1VMt8Y/d7Uj8MC\n
-OSjj+YA5NWN3HKYLhgGh0jmHRkxTlfYRlCBGFZXe7kPJELUo1dBeTb8D5j6GjY0F\n
-ZRB62oxCOa8t8ZQqKzyc4K8jDveg8zOUvvJ3s1IEkYL2Gr7o8c65IKPEPZ6hDiFw\n
-kvG5zqG4BcLA2SwCnT4Z0QAs+qC95thSFtA31NMJcX92MMqyRdrILcR5Fl0rqMfJ\n
-f9unE10TmEqy5X1BAeVCznmdOAGv+vmJ3XCD9KHdUCH29ZM21E1uPYbG6hNW92jL\n
-6CB5Zb+O0lbhvessQWvXrihf0q8p5JetzQE47+kt7AJPNniMJkn8AnXpHD4Ed1fU\n
-N7YNrEsfV8KM3c94IATYileXUEGqwxSsXceyWZGmF3wfO5QEP4bTeZu0LBQ6qHUJ\n
-BMUyglhEai45ulGzkVM56xEqRlteLVI4apWvwdH/L89Cgf9gnxTSyWvSuR5KtPiA\n
-kHqXV0zx3jMxttLTvrMvyM6L8SlKOTNaqQ1wCg4DZLopuZ8ilQzaTBez7rlhcXMm\n
-AOhJBqAofH9BFowVAeUQcWpgP//vwsmyzI7biZxX/DTuojOqTLXopc7hFtluKpPY\n
------END RSA PRIVATE KEY-----\n"]},
-{"name":"Passphrase (for Private Key)","type":"text","value":"qU1r45cgUa61f1Bn"}
-]
-```
-The output is a list of tuples, with each tuple representing a part of the
-credential. Most of them depend on the plugin, as they are specific to the
-service, yet there is one entry which is always included:
-- `id`: the value is the internal id in the TTS, see also `lscred`, which also
-  shows this credential
+The output is one line per credential.
+- the id is the internal identifier of the credential within TTS.
+- the id of the service it has been requested for.
+- the creation time
+- at which interface the credential was created, it is either the Web App or the REST interface
 
-### Revoking a credential (revoke)
+### Requesting a credential (request) *AUTH*
+#### Basic Request (without parameter sets)
+A basic request is possible if the service has the 'Empty Parameter Set (allows basic request)' in
+the listing (see `lsserv`).
+The only parameter a basic request needs is the id of the service to request the credential for:
+```
+$ ttsc request x509
+connecting to https://tts-dev.data.kit.edu/api/v2/ using protocol version 2
+requesting credential for service [x509]:
+Credential [29e28d92-a13f-4f3a-b23b-54c921a4cd82]:
+[ Certificate (textfile)] => Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number: 11 (0xb)
+    Signature Algorithm: sha1WithRSAEncryption
+        Issuer: C=EU, O=INDIGO, OU=TTS, CN=TTS-CA
+        Validity
+            Not Before: Dec 21 10:54:18 2016 GMT
+            Not After : Jan  1 10:54:18 2017 GMT
+        Subject: C=EU, O=INDIGO, OU=TTS, CN=1@google
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                Public-Key: (1024 bit)
+                Modulus:
+                    c8:96:6d:23:2a:10:bd:de:25
+                Exponent: 65537 (0x10001)
+        X509v3 extensions:
+            X509v3 Subject Key Identifier:
+                C2:DD:2F:99:80:7A:6C:54:66:EF:89:DE:02:0A:3A:14:AB:81:66:7B
+            X509v3 Authority Key Identifier:
+                keyid:E3:64:2D:4D:2B:8A:81:4E:58:0A:71:FE:D7:62:9D:A7:3F:69:C5:5E
+
+            X509v3 Basic Constraints:
+                CA:FALSE
+            X509v3 Key Usage:
+                Digital Signature, Key Encipherment
+            X509v3 Subject Alternative Name:
+                URI:https://accounts.google.com/109538112780676045413
+    Signature Algorithm: sha1WithRSAEncryption
+         ac:fd:04:36:81:4f:d8:99:8c:42:ee:92:23:0c:a5:1b:a0:6b:
+         aa:48:00:a8
+-----BEGIN CERTIFICATE-----
+MIIDITCCAgmgAwIBAgIBCzANBgkqhkiG9w0BAQUFADA9MQswCQYDVQQGEwJFVTEP
+KROGLtV7daqUGLf8p+BPmnipmUPiuzszzNhIcBfTsN24qkgAqA==
+-----END CERTIFICATE-----
+
+[ Private Key (textfile)] => -----BEGIN ENCRYPTED PRIVATE KEY-----
+MIICxjBABgkqhkiG9w0BBQ0wMzAbBgkqhkiG9w0BBQwwDgQIxFS4nQh/WxQCAggA
+sRc6PzBg3g1S0yNedNEQsOUU3krgJchRKmhSvLMeVRlTZSk/xuvb+mTr
+-----END ENCRYPTED PRIVATE KEY-----
+
+[ Passphrase (for Private Key) (text)] => 1234
+[ CA Certificate (textfile)] => -----BEGIN CERTIFICATE-----
+MIIDRTCCAi2gAwIBAgIBADANBgkqhkiG9w0BAQsFADA9MQswCQYDVQQGEwJFVTEP
+9D9hyq7aDBPvLiVQ/DcgQ1c+Nf1G12HZpg==
+-----END CERTIFICATE-----
+```
+The output (shortened) contains the credential Id and a list of credential entries,
+each representing a part of the credential.
+An entry consists of:
+ - a name
+ - its type
+ - and the value
+` [ <name> (<type>) ] => <value> `
+
+#### Advanced requests *TODO*
+### Revoking a credential (revoke) *AUTH*
 Revoking is very similar to requesting, yet instead of providing the service for
-which to request a credential, the credential id is provided.  So the list of
-parameter are: Credential id, access token, and issuer.
-
+which to request a credential, the credential id is provided.
 ```
-$ ttsc request localhost:8080 2GkzHmpkgVwywckpeIiP-5dpEes0iESe ya29.[...]jksb https://accounts.google.com
+$ ttsc revoke 29e28d92-a13f-4f3a-b23b-54c921a4cd82
+revoking credential [29e28d92-a13f-4f3a-b23b-54c921a4cd82]:
+credential sucessfully revoked
 ```
-Only in case of an error you get an output, otherwise the credential is revoked.
 Checking the list of credentials using the `lscred` command shows that only one
-credential is left:
+credential is left, yet not the one just requested:
 ```
-$ ttsc lscred localhost:8080 ya29.[...]jksb https://accounts.google.com
-{"cred_id":"qO10bfakPev2sbW5NWJuCdFKhzG4FmqV","cred_state":"TTS_CW0MSwY5qBZBPnn4JKpadDqCldrwdia8","ctime":1467877711,"interface":"web interface","service_id":"ssh"}
+$ ttsc lscred
+connecting to https://tts-dev.data.kit.edu/api/v2/ using protocol version 2
+retrieving credential list:
+
+Credential [9dfa0900-930b-462c-8144-da9dd1aa37d2]: for service with id [info] created Wed, 21 Dec 2016 10:48:51 GMT at 'Web App'
+
 ```
-### Plugin Developer HTTP support
-If you need to connect to an TTS instance that does not support SSL, you should
-contact the administrator and ask him to set it up.  A TTS without SSL MUST NOT
-run in production as confidential data are transmitted.
 
-For developers of plugins there is the possibility to set the environment
-variable `HTTP_SCHEME` to `http` to get a non SSL connection.
-
-Further explanations are omitted on purpose as this creates a HUGE security
-hole, you are warned.
+### Plugin Developer self signed certificate support
+TTSc does allow insecure https connections, they can be enabled by
+```
+export TTSC_INSECURE=true
+```
