@@ -53,7 +53,7 @@ The next steps build download and build ttsc:
 ```
 git clone https://github.com/indigo-dc/ttsc
 cd ttsc
-make
+./utils/compile.sh
 ```
 the binary executable is in the current direcotry called 'ttsc'.
 
