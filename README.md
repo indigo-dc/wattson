@@ -1,5 +1,5 @@
 # Wattson
-The Watts client
+The watts command line client
 
 
 ## Quickstart
