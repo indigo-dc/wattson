@@ -1,19 +1,19 @@
 # User Guide
-Using ttsc is made as easy as possible. In case you are lost orchent provides a lot of
-information with its 'help' command, just call `ttsc --help`.
+Using wattson is made as easy as possible. In case you are lost orchent provides a lot of
+information with its 'help' command, just call `wattson --help`.
 
 ```
-$ ttsc --help
-usage: ttsc [<flags>] <command> [<args> ...]
+$ wattson --help
+usage: wattson [<flags>] <command> [<args> ...]
 
-The Token Translation Service (TTS) client. Please store your access token in the 'TTSC_TOKEN' and the issuer url in the 'TTSC_ISSUER' environment variable:
-'export TTSC_TOKEN=<your access token>', 'export TTSC_ISSUER=<the issuer url>'. The url of the TTS can be stored in the environment variable 'TTSC_URL':
-export TTSC_URL=<url of the tts>
+The Token Translation Service (TTS) client. Please store your access token in the 'WATTSON_TOKEN' and the issuer url in the 'WATTSON_ISSUER' environment variable:
+'export WATTSON_TOKEN=<your access token>', 'export WATTSON_ISSUER=<the issuer url>'. The url of the WATTS can be stored in the environment variable 'WATTSON_URL':
+export WATTSON_URL=<url of the tts>
 
 Flags:
       --help       Show context-sensitive help (also try --help-long and --help-man).
       --version    Show application version.
-  -u, --url=URL    the base url of the TTS rest interface
+  -u, --url=URL    the base url of the WATTS rest interface
   -p, --protver=2  protocol version to use (can be 0, 1 or 2)
   -j, --json       enable json output
       --debug      enable debug output
@@ -23,7 +23,7 @@ Commands:
     Show help.
 
   info
-    get the information about the TTS running, e.g. its version
+    get the information about the WATTS running, e.g. its version
 
   lsprov
     list all OpenID Connect provider
@@ -43,59 +43,59 @@ Commands:
 
 If you have questions or found a bug please always include the version on your description:
 ```
-ttsc --version
+wattson --version
 ```
 
 
 ## Client setup
 The client is configured by environment variables:
- - TTSC_URL: the base url of the Token Translation service, e.g. `https://tts-dev.data.kit.edu`
- - TTSC_ISSUER: the issuer url of the OpenId Connect provider in use (see `lsprov`)
- - TTSC_TOKEN: the access token received from the OpenId Connect provider, e.g. using the web interface of the Token Translation Service
+ - WATTSON_URL: the base url of the Token Translation service, e.g. `https://tts-dev.data.kit.edu`
+ - WATTSON_ISSUER: the issuer url of the OpenId Connect provider in use (see `lsprov`)
+ - WATTSON_TOKEN: the access token received from the OpenId Connect provider, e.g. using the web interface of the Token Translation Service
 
-All commands need at least the `TTSC_URL` to be set:
+All commands need at least the `WATTSON_URL` to be set:
 ```
-export TTSC_URL=https://tts-dev.data.kit.edu
+export WATTSON_URL=https://tts-dev.data.kit.edu
 ```
 change the url to fit your needs, alternativly the `--url` flag can be used.
 
 Issuer and Token are set the same way, commands that need those to be set are marked with *AUTH*:
 ```
-export TTSC_ISSUER=<the issuer url>
-export TTSC_TOKEN=<the access token>
+export WATTSON_ISSUER=<the issuer url>
+export WATTSON_TOKEN=<the access token>
 ```
 
 ## Flags
 Flags can be used with any command and change the behaviour of the client:
 - `--json` encode the received information using json
 - `--protver=X` set the protocol version to X, supported are 0, 1 and 2 (default: 2)
-  - 0 is used for TTS up to version 0.4.x
-  - 1 is used for TTS 1.0.x to get the same results as with 0.4.x
-  - 2 is the newest api version for TTS 1.0.x
+  - 0 is used for WATTS up to version 0.4.x
+  - 1 is used for WATTS 1.0.x to get the same results as with 0.4.x
+  - 2 is the newest api version for WATTS 1.0.x
 - `--debug` enabled debug output
-- `--url` set the base url of the TTS, usually done by setting the environment variable `TTSC_URL`
+- `--url` set the base url of the TTS, usually done by setting the environment variable `WATTSON_URL`
 
 ## Commands
 Each Description will include a sample call and its output.
 
 ### Get Information about the Token Translation Service (info)
 ```
-$ ttsc info
+$ wattson info
 connecting to https://tts-dev.data.kit.edu/api/v2/ using protocol version 2
 retrieving information:
-TTS version: 1.0.0
+WATTS version: 1.0.0
   the redirect path is: /oidc
 this connection is *NOT* logged in
 ```
-The TTS is running version 1.0.0 and we are not in an active session,
+The WATTS is running version 1.0.0 and we are not in an active session,
 this is always the case when using the REST interface.
 
 
 ### List all OpenId Provider (lsprov)
-The `lsprov` command lists all the OpenId Providers a TTS instance supports. The call
+The `lsprov` command lists all the OpenId Providers a WATTS instance supports. The call
 needs no additional parameter:
 ```
-$ ttsc lsprov
+$ wattson lsprov
 connecting to https://tts-dev.data.kit.edu/api/v2/ using protocol version 2
 retrieving provider list:
 Provider [iam][ready] INDIGO Datacloud Identity and Access Management (IAM) (https://iam-test.indigo-datacloud.eu/)
@@ -104,8 +104,8 @@ Provider [eudat][ready] EUDAT (b2access) (https://b2access.eudat.eu:8443/oauth2)
 Provider [egi][ready] European Grid Infrastracture (Development) (https://aai-dev.egi.eu/oidc/)
 Provider [google][ready] Google, the well known search giant (https://accounts.google.com)
 ```
-In the example above, the TTS will be asked to list all the OpenId Connect Providers it supports.
-For this example, the TTS supports four OpenId Connect providers.
+In the example above, the WATTS will be asked to list all the OpenId Connect Providers it supports.
+For this example, the WATTS supports four OpenId Connect providers.
 Each line contains multiple information:
  - the id of the provider e.g. 'iam'
  - the status, in this example 'ready'
@@ -114,10 +114,10 @@ Each line contains multiple information:
 
 
 ### List all service for a user (lsserv) *AUTH*
-The `lsserv` command lists all the services the TTS supports for the authorized
+The `lsserv` command lists all the services the WATTS supports for the authorized
 user.
 ```
-$ ttsc lsserv
+$ wattson lsserv
 connecting to https://tts-dev.data.kit.edu/api/v2/ using protocol version 2
 retrieving service list:
 
@@ -173,7 +173,7 @@ which can be empty.
 ### Listing all credentials (lscred) *AUTH*
 The `lscred` command lists all currently requested credentials.
 ```
-$ ttsc lscred
+$ wattson lscred
 connecting to https://tts-dev.data.kit.edu/api/v2/ using protocol version 2
 retrieving credential list:
 
@@ -192,7 +192,7 @@ A basic request is possible if the service has the 'Empty Parameter Set (allows 
 the listing (see `lsserv`).
 The only parameter a basic request needs is the id of the service to request the credential for:
 ```
-$ ttsc request x509
+$ wattson request x509
 connecting to https://tts-dev.data.kit.edu/api/v2/ using protocol version 2
 requesting credential for service [x509]:
 Credential [29e28d92-a13f-4f3a-b23b-54c921a4cd82]:
@@ -286,7 +286,7 @@ Each non-emtpy set contains of a list of parameter with the following informatio
 
  the request in total would be:
  ```
- ttsc request indigo_ssh '{ "pub_key":"ssh-rsa AAAAAAAAAABBBBBBBBBBBBBBBCCCCCCCCCCCCCCCCCCC me@computer"}'
+ wattson request indigo_ssh '{ "pub_key":"ssh-rsa AAAAAAAAAABBBBBBBBBBBBBBBCCCCCCCCCCCCCCCCCCC me@computer"}'
  ```
  (note the single quotes and double quotes, using them as above makes your life easier)
 
@@ -295,14 +295,14 @@ Each non-emtpy set contains of a list of parameter with the following informatio
 Revoking is very similar to requesting, yet instead of providing the service for
 which to request a credential, the credential id is provided.
 ```
-$ ttsc revoke 29e28d92-a13f-4f3a-b23b-54c921a4cd82
+$ wattson revoke 29e28d92-a13f-4f3a-b23b-54c921a4cd82
 revoking credential [29e28d92-a13f-4f3a-b23b-54c921a4cd82]:
 credential sucessfully revoked
 ```
 Checking the list of credentials using the `lscred` command shows that only one
 credential is left, yet not the one just requested:
 ```
-$ ttsc lscred
+$ wattson lscred
 connecting to https://tts-dev.data.kit.edu/api/v2/ using protocol version 2
 retrieving credential list:
 
@@ -311,7 +311,7 @@ Credential [9dfa0900-930b-462c-8144-da9dd1aa37d2]: for service with id [info] cr
 ```
 
 ### Plugin Developer self signed certificate support
-TTSc does allow insecure https connections, they can be enabled by
+Wattson does allow insecure https connections, they can be enabled by
 ```
-export TTSC_INSECURE=true
+export WATTSON_INSECURE=true
 ```

@@ -17,16 +17,16 @@ glide install
 cp -r vendor/* "$GOPATH/src"
 rm -fr pkg-build/*
 mkdir -p pkg-build/amd64
-GOOS=linux GOARCH=amd64 go build -o build/amd64/ttsc ttsc.go
+GOOS=linux GOARCH=amd64 go build -o build/amd64/wattson ttsc.go
 case $DISTRIBUTION in
     debian)
         GO_BIN="go-bin-deb"
-        PKG="ttsc-$VERSION-amd64.deb"
+        PKG="wattson-$VERSION-amd64.deb"
         PFLAG="-w"
         ;;
     centos)
         GO_BIN="go-bin-rpm"
-        PKG="ttsc-$VERSION.el7.centos.x86_64.rpm"
+        PKG="wattson-$VERSION.el7.centos.x86_64.rpm"
         PFLAG="-b"
         ;;
 esac

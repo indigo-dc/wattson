@@ -13,16 +13,16 @@ import (
 	"strings"
 )
 
-const ttscVersion string = "1.0.0-alpha"
+const wattsonVersion string = "1.0.0-alpha"
 
 var (
-	app     = kingpin.New("ttsc", "The Token Translation Service (TTS) client.\nPlease store your access token in the 'TTSC_TOKEN' and the issuer url in the 'TTSC_ISSUER' environment variable: 'export TTSC_TOKEN=<your access token>', 'export TTSC_ISSUER=<the issuer url>'. The url of the TTS can be stored in the environment variable 'TTSC_URL': export TTSC_URL=<url of the tts>").Version(ttscVersion)
-	hostUrl = app.Flag("url", "the base url of the TTS rest interface").Short('u').String()
+	app     = kingpin.New("wattson", "The watts client.\nPlease store your access token in the 'WATTSON_TOKEN' and the issuer url in the 'WATTSON_ISSUER' environment variable: 'export WATTSON_TOKEN=<your access token>', 'export WATTSON_ISSUER=<the issuer url>'. The url of watts can be stored in the environment variable 'WATTSON_URL': export WATTSON_URL=<url of watts>").Version(wattsonVersion)
+	hostUrl = app.Flag("url", "the base url of watts' rest interface").Short('u').String()
 
 	protVersion = app.Flag("protver", "protocol version to use (can be 0, 1 or 2)").Default("2").Short('p').Int()
 	jsonOutput  = app.Flag("json", "enable json output").Short('j').Bool()
 	debugOutput = app.Flag("debug", "enable debug output").Bool()
-	ttsInfo     = app.Command("info", "get the information about the TTS running, e.g. its version")
+	wattsInfo     = app.Command("info", "get the information about watts, e.g. its version")
 
 	lsProv = app.Command("lsprov", "list all OpenID Connect provider")
 
@@ -38,12 +38,12 @@ var (
 	revokeCredId = revoke.Arg("credId", "the id of the credential to revoke").Required().String()
 )
 
-type TtsError struct {
+type WattsError struct {
 	Result  string `json:"result"`
 	Message string `json:"user_msg"`
 }
 
-func (e TtsError) Error() string {
+func (e WattsError) Error() string {
 	if is_error(&e) {
 		return fmt.Sprintf("Error: %s", e.Message)
 	} else {
@@ -51,24 +51,24 @@ func (e TtsError) Error() string {
 	}
 }
 
-func is_error(e *TtsError) bool {
+func is_error(e *WattsError) bool {
 	return e.Result == "error"
 }
 
-type TtsInfo struct {
+type WattsInfo struct {
 	Name         string `json:"display_name"`
 	LoggedIn     bool   `json:"logged_in"`
 	RedirectPath string `json:"redirect_path"`
 	Version      string `json:"version"`
 }
 
-func (info TtsInfo) String() string {
+func (info WattsInfo) String() string {
 	output := ""
 	if *jsonOutput {
 		json, _ := json.Marshal(info)
 		output = string(json)
 	} else {
-		output = output + fmt.Sprintf("TTS version: %s\n", info.Version)
+		output = output + fmt.Sprintf("watts version: %s\n", info.Version)
 		output = output + fmt.Sprintf("  the redirect path is: %s\n", info.RedirectPath)
 		if info.LoggedIn {
 			output = output + fmt.Sprintf("this connection is logged in as %s\n", info.Name)
@@ -79,14 +79,14 @@ func (info TtsInfo) String() string {
 	return output
 }
 
-type TtsProvider struct {
+type WattsProvider struct {
 	Id     string `json:"id"`
 	Issuer string `json:"issuer"`
 	Desc   string `json:"desc"`
 	Ready  bool   `json:"ready"`
 }
 
-func (prov TtsProvider) String() string {
+func (prov WattsProvider) String() string {
 	output := ""
 	if *jsonOutput {
 		json, _ := json.Marshal(prov)
@@ -105,11 +105,11 @@ func (prov TtsProvider) String() string {
 	return output
 }
 
-type TtsProviderList struct {
-	Provider []TtsProvider `json:"openid_provider_list"`
+type WattsProviderList struct {
+	Provider []WattsProvider `json:"openid_provider_list"`
 }
 
-func (provList TtsProviderList) String() string {
+func (provList WattsProviderList) String() string {
 	output := ""
 	if *jsonOutput {
 		json, _ := json.Marshal(provList)
@@ -122,7 +122,7 @@ func (provList TtsProviderList) String() string {
 	return output
 }
 
-type TtsServiceParam struct {
+type WattsServiceParam struct {
 	Key       string `json:"key"`
 	Name      string `json:"name"`
 	Desc      string `json:"description"`
@@ -130,7 +130,7 @@ type TtsServiceParam struct {
 	Mandatory bool   `json:"mandatory"`
 }
 
-func (param TtsServiceParam) String() string {
+func (param WattsServiceParam) String() string {
 	must := "Optional"
 	if param.Mandatory {
 		must = "MANDATORY"
@@ -139,7 +139,7 @@ func (param TtsServiceParam) String() string {
 	return output
 }
 
-type TtsService struct {
+type WattsService struct {
 	Id           string              `json:"id"`
 	Desc         string              `json:"description"`
 	Type         string              `json:"type"`
@@ -151,10 +151,10 @@ type TtsService struct {
 	Enabled      bool                `json:"enabled"`
 	Authorized   bool                `json:"authorized"`
 	Tooltip      string              `json:"authz_tooltip"`
-	Params       [][]TtsServiceParam `json:"params"`
+	Params       [][]WattsServiceParam `json:"params"`
 }
 
-func (serv TtsService) String() string {
+func (serv WattsService) String() string {
 	output := ""
 	on := "disabled"
 	if serv.Enabled {
@@ -197,11 +197,11 @@ func (serv TtsService) String() string {
 	return output
 }
 
-type TtsServiceList struct {
-	Services []TtsService `json:"service_list"`
+type WattsServiceList struct {
+	Services []WattsService `json:"service_list"`
 }
 
-func (servList TtsServiceList) String() string {
+func (servList WattsServiceList) String() string {
 	output := ""
 	if *jsonOutput {
 		json, _ := json.Marshal(servList)
@@ -216,13 +216,13 @@ func (servList TtsServiceList) String() string {
 	return output
 }
 
-type TtsCredentialEntry struct {
+type WattsonCredentialEntry struct {
 	Name  string `json:"name"`
 	Type  string `json:"type"`
 	Value string `json:"value"`
 }
 
-func (entry TtsCredentialEntry) String() string {
+func (entry WattsonCredentialEntry) String() string {
 	output := fmt.Sprintf("[ %s (%s)] => %s", entry.Name, entry.Type, entry.Value)
 	return output
 }
@@ -245,16 +245,16 @@ func (credWrap TtsV1CredWrap) String() string {
 	return output
 }
 
-type TtsCredential struct {
+type WattsonCredential struct {
 	Id        string               `json:"id"`
 	InfoId    string               `json:"cred_id"`
 	CTime     string               `json:"ctime"`
 	Interface string               `json:"interface"`
 	ServiceId string               `json:"service_id"`
-	Entries   []TtsCredentialEntry `json:"entries"`
+	Entries   []WattsonCredentialEntry `json:"entries"`
 }
 
-func (cred TtsCredential) String() string {
+func (cred WattsonCredential) String() string {
 	output := ""
 	if cred.Id == "" && *protVersion == 2 {
 		output = fmt.Sprintf("Credential [%s]: for service with id [%s] created %s at '%s'", cred.InfoId, cred.ServiceId, cred.CTime, cred.Interface)
@@ -272,11 +272,11 @@ func (cred TtsCredential) String() string {
 	return output
 }
 
-type TtsCredentialResult struct {
-	Credential TtsCredential `json:"credential"`
+type WattsonCredentialResult struct {
+	Credential WattsonCredential `json:"credential"`
 }
 
-func (res TtsCredentialResult) String() string {
+func (res WattsonCredentialResult) String() string {
 	output := ""
 	if *jsonOutput {
 		json, _ := json.Marshal(res)
@@ -287,14 +287,14 @@ func (res TtsCredentialResult) String() string {
 	return output
 }
 
-type TtsCredentialListV1 struct {
+type WattsonCredentialListV1 struct {
 	Credentials []TtsV1CredWrap `json:"credential_list"`
 }
-type TtsCredentialListV2 struct {
-	Credentials []TtsCredential `json:"credential_list"`
+type WattsonCredentialListV2 struct {
+	Credentials []WattsonCredential `json:"credential_list"`
 }
 
-func (credList TtsCredentialListV2) String() string {
+func (credList WattsonCredentialListV2) String() string {
 	output := ""
 	if *jsonOutput {
 		json, _ := json.Marshal(credList)
@@ -313,7 +313,7 @@ func (credList TtsCredentialListV2) String() string {
 	return output
 }
 
-func (credList TtsCredentialListV1) String() string {
+func (credList WattsonCredentialListV1) String() string {
 	output := ""
 	if *jsonOutput {
 		json, _ := json.Marshal(credList)
@@ -332,7 +332,7 @@ func (credList TtsCredentialListV1) String() string {
 	return output
 }
 
-type TtsCredentialRequest struct {
+type WattsonCredentialRequest struct {
 	ServiceId string `json:"service_id"`
 	Params (map[string]interface{}) `json:"params"`
 }
@@ -360,7 +360,7 @@ func redirect_check(req *http.Request, via []*http.Request) error {
 }
 
 func client() *http.Client {
-	_, set := os.LookupEnv("TTSC_INSECURE")
+	_, set := os.LookupEnv("WATTSON_INSECURE")
 	client := http.DefaultClient
 	if set {
 		tr := &http.Transport{
@@ -372,92 +372,92 @@ func client() *http.Client {
 	return client
 }
 
-func tts_info(base *sling.Sling) {
-	info := new(TtsInfo)
-	ttsError := new(TtsError)
+func watts_info(base *sling.Sling) {
+	info := new(WattsInfo)
+	wattsError := new(WattsError)
 	if !*jsonOutput {
 		fmt.Println("retrieving information:")
 	}
-	resp, err := base.Get("./info").Receive(info, ttsError)
+	resp, err := base.Get("./info").Receive(info, wattsError)
 	if err != nil {
 		fmt.Printf("error requesting information:\n %s\n", err)
 		return
 	}
 	display_response(resp)
-	if is_error(ttsError) {
-		fmt.Printf("error requesting information:\n %s\n", ttsError)
+	if is_error(wattsError) {
+		fmt.Printf("error requesting information:\n %s\n", wattsError)
 	} else {
 		fmt.Println(info)
 	}
 }
 
 func provider_list(base *sling.Sling) {
-	providerList := new(TtsProviderList)
-	ttsError := new(TtsError)
+	providerList := new(WattsProviderList)
+	wattsError := new(WattsError)
 	if !*jsonOutput {
 		fmt.Println("retrieving provider list:")
 	}
-	resp, err := base.Get("./oidcp").Receive(providerList, ttsError)
+	resp, err := base.Get("./oidcp").Receive(providerList, wattsError)
 	if err != nil {
 		fmt.Printf("error requesting list of provider:\n %s\n", err)
 		return
 	}
 	display_response(resp)
-	if is_error(ttsError) {
-		fmt.Printf("error requesting list of provider:\n %s\n", ttsError)
+	if is_error(wattsError) {
+		fmt.Printf("error requesting list of provider:\n %s\n", wattsError)
 	} else {
 		fmt.Println(providerList)
 	}
 }
 
 func service_list(base *sling.Sling) {
-	serviceList := new(TtsServiceList)
-	ttsError := new(TtsError)
+	serviceList := new(WattsServiceList)
+	wattsError := new(WattsError)
 	if !*jsonOutput {
 		fmt.Println("retrieving service list:")
 	}
-	resp, err := base.Get("./service").Receive(serviceList, ttsError)
+	resp, err := base.Get("./service").Receive(serviceList, wattsError)
 	if err != nil {
 		fmt.Printf("error requesting list of services:\n %s\n", err)
 		return
 	}
 	display_response(resp)
-	if is_error(ttsError) {
-		fmt.Printf("error requesting list of services:\n %s\n", ttsError)
+	if is_error(wattsError) {
+		fmt.Printf("error requesting list of services:\n %s\n", wattsError)
 	} else {
 		fmt.Println(serviceList)
 	}
 }
 
 func credential_list(base *sling.Sling) {
-	ListV2 := new(TtsCredentialListV2)
-	ListV1 := new(TtsCredentialListV1)
-	ttsError := new(TtsError)
+	ListV2 := new(WattsonCredentialListV2)
+	ListV1 := new(WattsonCredentialListV1)
+	wattsError := new(WattsError)
 
 	if !*jsonOutput {
 		fmt.Println("retrieving credential list:")
 	}
 	if *protVersion == 2 {
-		resp, err := base.Get("./credential").Receive(ListV2, ttsError)
+		resp, err := base.Get("./credential").Receive(ListV2, wattsError)
 		if err != nil {
 			fmt.Printf("error requesting list of credentials:\n %s\n", err)
 			return
 		}
 		display_response(resp)
-		if is_error(ttsError) {
-			fmt.Printf("error requesting list of credentials:\n %s\n", ttsError)
+		if is_error(wattsError) {
+			fmt.Printf("error requesting list of credentials:\n %s\n", wattsError)
 		} else {
 			fmt.Println(ListV2)
 		}
 	} else {
-		resp, err := base.Get("./credential").Receive(ListV1, ttsError)
+		resp, err := base.Get("./credential").Receive(ListV1, wattsError)
 		if err != nil {
 			fmt.Printf("error requesting list of credentials:\n %s\n", err)
 			return
 		}
 		display_response(resp)
-		if is_error(ttsError) {
-			fmt.Printf("error requesting list of credentials:\n %s\n", ttsError)
+		if is_error(wattsError) {
+			fmt.Printf("error requesting list of credentials:\n %s\n", wattsError)
 		} else {
 			fmt.Println(ListV1)
 		}
@@ -465,9 +465,9 @@ func credential_list(base *sling.Sling) {
 }
 
 func credential_request(serviceId string, parameter string, base *sling.Sling) {
-	credential := new(TtsCredentialResult)
-	oldCred := new([]TtsCredentialEntry)
-	ttsError := new(TtsError)
+	credential := new(WattsonCredentialResult)
+	oldCred := new([]WattsonCredentialEntry)
+	wattsError := new(WattsError)
 	var parameterMap map[string]interface{}
 
 	if parameter == "" {
@@ -483,32 +483,32 @@ func credential_request(serviceId string, parameter string, base *sling.Sling) {
 		fmt.Printf("requesting credential for service [%s]:\n", serviceId)
 	}
 
-	body := &TtsCredentialRequest{
+	body := &WattsonCredentialRequest{
 		ServiceId: serviceId,
 		Params: parameterMap,
 	}
 
 	if *protVersion == 2 {
-		resp, err := base.Post("./credential").BodyJSON(body).Receive(credential, ttsError)
+		resp, err := base.Post("./credential").BodyJSON(body).Receive(credential, wattsError)
 		if err != nil {
 			fmt.Printf("error requesting of credential:\n %s\n", err)
 			return
 		}
 		display_response(resp)
-		if is_error(ttsError) {
-			fmt.Printf("error requesting of credential (TTS):\n %s\n", ttsError)
+		if is_error(wattsError) {
+			fmt.Printf("error requesting of credential (at watts):\n %s\n", wattsError)
 		} else {
 			fmt.Println(credential)
 		}
 	} else {
-		resp, err := base.Post("./credential").BodyJSON(body).Receive(oldCred, ttsError)
+		resp, err := base.Post("./credential").BodyJSON(body).Receive(oldCred, wattsError)
 		if err != nil {
 			fmt.Printf("error requesting of credential:\n %s\n", err)
 			return
 		}
 		display_response(resp)
-		if is_error(ttsError) {
-			fmt.Printf("error requesting of credential:\n %s\n", ttsError)
+		if is_error(wattsError) {
+			fmt.Printf("error requesting of credential:\n %s\n", wattsError)
 		} else {
 			credential.Credential.Entries = *oldCred
 			fmt.Println(credential)
@@ -539,10 +539,10 @@ func credential_revoke(credId string, base *sling.Sling) {
 
 func base_connection(urlBase string) *sling.Sling {
 	client := client()
-	tokenValue, tokenSet := os.LookupEnv("TTSC_TOKEN")
-	issuerValue, issuerSet := os.LookupEnv("TTSC_ISSUER")
+	tokenValue, tokenSet := os.LookupEnv("WATTSON_TOKEN")
+	issuerValue, issuerSet := os.LookupEnv("WATTSON_ISSUER")
 	base := sling.New().Client(client).Base(urlBase)
-	base = base.Set("User-Agent", "TTSc")
+	base = base.Set("User-Agent", "Wattson")
 	base = base.Set("Accept", "application/json")
 	if tokenSet && issuerSet {
 		token := "Bearer " + tokenValue
@@ -583,14 +583,14 @@ func display_response(resp *http.Response) {
 }
 
 func get_base_url() string {
-	urlValue, urlSet := os.LookupEnv("TTSC_URL")
+	urlValue, urlSet := os.LookupEnv("WATTSON_URL")
 	baseUrl := ""
 	if *hostUrl != "" {
 		baseUrl = base_url(*hostUrl)
 	} else if urlSet {
 		baseUrl = base_url(urlValue)
 	} else {
-		fmt.Println("*** ERROR: No url given! Either set the environment varible 'TTSC_URL' or use the --url flag")
+		fmt.Println("*** ERROR: No url given! Either set the environment varible 'WATTSON_URL' or use the --url flag")
 		os.Exit(1)
 	}
 	return baseUrl
@@ -604,9 +604,9 @@ func connection() *sling.Sling {
 
 func main() {
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
-	case ttsInfo.FullCommand():
+	case wattsInfo.FullCommand():
 		base := connection()
-		tts_info(base)
+		watts_info(base)
 	case lsProv.FullCommand():
 		base := connection()
 		provider_list(base)

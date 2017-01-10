@@ -22,6 +22,6 @@ echo "done"
 echo -n "  sling ... "
 go get github.com/dghubble/sling
 echo "done"
-echo -n "building TTSc ... "
-go build ${GOPATH}/ttsc.go
+echo -n "building wattson ... "
+go build -o wattson ${GOPATH}/ttsc.go
 echo "done"

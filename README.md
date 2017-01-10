@@ -1,14 +1,14 @@
-# TTSc
-Token Translation Service Client
+# Wattson
+The Watts client
 
 
 ## Quickstart
-Once installed using the ttsc is straight forward:
+Once installed using wattson is straight forward:
 
 The next lines will set up the connection and check the supported issuer:
 ```
-export TTSC_URL=https://tts-dev.data.kit.edu
-ttsc lsprov
+export WATTSON_URL=https://tts-dev.data.kit.edu
+wattson lsprov
 ```
 The output will be similar to:
 ```
@@ -34,9 +34,9 @@ In this example we will use 'iam'. Log in at the web interface of TTS using IAM.
 The following line will set up the authorization for the command line client and request the list of
 services:
 ```
-export TTSC_TOKEN=<paste the copied text from the dialog here>
-export TTSC_ISSUER=https://iam-test.indigo-datacloud.eu/
-ttsc lsserv
+export WATTSON_TOKEN=<paste the copied text from the dialog here>
+export WATTSON_ISSUER=https://iam-test.indigo-datacloud.eu/
+wattson lsserv
 ```
 The output should be similar to:
 ```
@@ -93,7 +93,7 @@ The output shows the list of all services:
 
 Requesting a credential simply works with the command 'request' and the service id:
 ```
-ttsc request info
+wattson request info
 ```
 the output should be similar to:
 ```
@@ -139,7 +139,7 @@ Credential [f9dbb0e0-9e3e-4065-9fee-8ac30387d2b4]:
 Now you can use that information/credential, once you do not need it anymore you need to revoke it
 using the credential id, shown in the first line:
 ```
-ttsc revoke f9dbb0e0-9e3e-4065-9fee-8ac30387d2b4
+wattson revoke f9dbb0e0-9e3e-4065-9fee-8ac30387d2b4
 ```
 the output should look like:
 ```
@@ -147,4 +147,4 @@ revoking credential [f9dbb0e0-9e3e-4065-9fee-8ac30387d2b4]:
 credential sucessfully revoked
 ```
 
-For more information and more examples please see [the documentation](https://indigo-dc.gitbooks.io/token-translation-service-client-ttsc/content/)
+For more information and more examples please see [the documentation](https://indigo-dc.gitbooks.io/token-translation-service-client-wattson/content/)

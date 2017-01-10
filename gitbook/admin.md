@@ -18,7 +18,7 @@ After adding the repository one needs to update the package list and then instal
 the Token Translation Service.
 ```
 apt update
-apt install ttsc
+apt install wattson
 ```
 
 #### CentOS 7
@@ -26,11 +26,11 @@ After adding the repository one needs to update the package list and then instal
 the Token Translation Service.
 ```
 yum update
-yum install ttsc
+yum install wattson
 ```
 
 ### From Source
-To be able to install ttsc from source, you need the go programming language
+To be able to install wattson from source, you need the go programming language
 version 1.5 or newer installed on the system.
 
 The go programming language should be in the repository of your Linux distribution.
@@ -46,15 +46,15 @@ Installing on CentOs is also just a
 yum install golang
 ```
 
-The next steps build download and build ttsc:
+The next steps build download and build wattson:
 - clone the git repository
 - build the package yourself
 - install the package
 ```
-git clone https://github.com/indigo-dc/ttsc
-cd ttsc
+git clone https://github.com/indigo-dc/wattson
+cd wattson
 ./utils/compile.sh
 ```
-the binary executable is in the current direcotry called 'ttsc'.
+the binary executable is in the current direcotry called 'wattson'.
 
 One could now copy the binary to e.g. `/usr/bin`.
