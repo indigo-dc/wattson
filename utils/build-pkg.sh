@@ -17,7 +17,7 @@ glide install
 cp -r vendor/* "$GOPATH/src"
 rm -fr pkg-build/*
 mkdir -p pkg-build/amd64
-GOOS=linux GOARCH=amd64 go build -o build/amd64/wattson ttsc.go
+GOOS=linux GOARCH=amd64 go build -o build/amd64/wattson wattson.go
 case $DISTRIBUTION in
     debian)
         GO_BIN="go-bin-deb"
