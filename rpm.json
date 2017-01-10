@@ -1,17 +1,17 @@
 {
-  "name": "ttsc",
+  "name": "wattson",
   "version": "!version!",
   "arch": "!arch!",
   "release": "1",
-  "summary": "INDIGO Token Translation Service client",
+  "summary": "watts command line client",
   "group": "Applications/Internet",
   "license": "LICENSE",
-  "url": "http://github.com/indigo-dc/ttsc",
+  "url": "http://github.com/indigo-dc/!name!",
   "description": "a command line client to use with the INDOGO TTS",
   "changelog-cmd": "changelog rpm",
   "files": [
     {
-      "from": "build/!arch!/ttsc",
+      "from": "build/!arch!/!name!",
       "to": "%{_bindir}/",
       "base": "build/!arch!/",
       "type": ""

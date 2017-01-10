@@ -8,9 +8,9 @@ SOURCE_DIR=`pwd`
 VERSION=`git describe --tags`
 source ./utils/prepare_system.sh
 
-# expecting to be in $GOPATH/src/github.com/indigo-dc/ttsc
-mkdir -p $GOPATH/src/github.com/indigo-dc/ttsc
-cd $GOPATH/src/github.com/indigo-dc/ttsc
+# expecting to be in $GOPATH/src/github.com/indigo-dc/wattson
+mkdir -p $GOPATH/src/github.com/indigo-dc/wattson
+cd $GOPATH/src/github.com/indigo-dc/wattson
 pwd
 cp -v $SOURCE_DIR/* .
 glide install

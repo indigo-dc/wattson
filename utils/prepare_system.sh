@@ -86,7 +86,7 @@ curl https://glide.sh/get | sh
 echo " "
 echo " "
 echo "*** installing build utils ***"
-mkdir -p src/github.com/indigo-dc/ttsc
+mkdir -p src/github.com/indigo-dc/wattson
 mkdir -p src/github.com/mh-cbon
 cd src/github.com/mh-cbon
 case "$DISTRIBUTION" in
