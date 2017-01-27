@@ -311,7 +311,13 @@ Credential [9dfa0900-930b-462c-8144-da9dd1aa37d2]: for service with id [info] cr
 ```
 
 ### Plugin Developer self signed certificate support
-Wattson does allow insecure https connections, they can be enabled by
+*WARNING* Never do this with operational systems!
+If wattson does complain that the certificate of the server can not be verified this has two possible reasons:
+ - The server is misconfigured: contact the administrator
+ - There is a man in the middle attack
+
+
+The verification of certificates can be disabled with the following line:
 ```
 export WATTSON_INSECURE=true
 ```

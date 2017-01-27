@@ -46,10 +46,9 @@ Installing on CentOs is also just a
 yum install golang
 ```
 
-The next steps build download and build wattson:
+The next steps download the source and build wattson:
 - clone the git repository
-- build the package yourself
-- install the package
+- compile wattson
 ```
 git clone https://github.com/indigo-dc/wattson
 cd wattson

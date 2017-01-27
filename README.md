@@ -1,5 +1,5 @@
 # Wattson
-The watts command line client
+The WaTTS (INDIGO Token Translation Service) command line client
 
 
 ## Quickstart
@@ -147,4 +147,4 @@ revoking credential [f9dbb0e0-9e3e-4065-9fee-8ac30387d2b4]:
 credential sucessfully revoked
 ```
 
-For more information and more examples please see [the documentation](https://indigo-dc.gitbooks.io/token-translation-service-client-wattson/content/)
+For more information and more examples please see [the documentation](https://indigo-dc.gitbooks.io/wattson/content/)
