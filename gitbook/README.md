@@ -1,5 +1,4 @@
-# Wattson, the token translation service client
+# Wattson, The WaTTS (INDIGO Token Translation Service) client
 ## Purpose
 
-wattson is a command line application to manage credentials at the Token Translation Service (WATTS)
-in an easy way.
+wattson is a command line application to manage credentials at WaTTS in an easy way.
