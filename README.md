@@ -1,5 +1,5 @@
 # Wattson
-The WaTTS (INDIGO Token Translation Service) client
+The WaTTS (INDIGO Token Translation Service) command line client
 
 
 ## Quickstart
