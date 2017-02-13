@@ -16,7 +16,7 @@ import (
 const wattsonVersion string = "1.0.0-alpha"
 
 var (
-	app     = kingpin.New("wattson", "The watts client.\nPlease store your access token in the 'WATTSON_TOKEN' and the issuer url in the 'WATTSON_ISSUER' environment variable: 'export WATTSON_TOKEN=<your access token>', 'export WATTSON_ISSUER=<the issuer url>'. The url of watts can be stored in the environment variable 'WATTSON_URL': export WATTSON_URL=<url of watts>").Version(wattsonVersion)
+	app     = kingpin.New("wattson", "The WaTTS client.\nPlease store your access token in the 'WATTSON_TOKEN' and the issuer id (up to version 1 also the issuer url) in the 'WATTSON_ISSUER' environment variable: 'export WATTSON_TOKEN=<your access token>', 'export WATTSON_ISSUER=<the issuer id>'. The url of watts can be stored in the environment variable 'WATTSON_URL': export WATTSON_URL=<url of watts>").Version(wattsonVersion)
 	hostUrl = app.Flag("url", "the base url of watts' rest interface").Short('u').String()
 
 	protVersion = app.Flag("protver", "protocol version to use (can be 0, 1 or 2)").Default("2").Short('p').Int()
@@ -546,7 +546,12 @@ func base_connection(urlBase string) *sling.Sling {
 	base = base.Set("Accept", "application/json")
 	if tokenSet && issuerSet {
 		token := "Bearer " + tokenValue
-		return base.Set("Authorization", token).Set("X-OpenId-Connect-Issuer", issuerValue)
+		base = base.Set("Authorization", token)
+		if *protVersion <= 1 {
+			return base.Set("X-OpenId-Connect-Issuer", issuerValue)
+		} else {
+			return base
+		}
 	} else {
 		fmt.Println(" ")
 		fmt.Println("*** WARNING: either access token or issuer has not been specified ***")
@@ -556,7 +561,11 @@ func base_connection(urlBase string) *sling.Sling {
 }
 
 func base_url(rawUrl string) string {
+	issuerValue, issuerSet := os.LookupEnv("WATTSON_ISSUER")
 	apiPath := "v2/"
+	if issuerSet {
+		apiPath = "v2/" + issuerValue + "/"
+	}
 	if *protVersion == 0 {
 		apiPath = ""
 	} else if *protVersion == 1 {
