@@ -16,7 +16,7 @@ import (
 const wattsonVersion string = "1.0.0-alpha"
 
 var (
-	app     = kingpin.New("wattson", "The WaTTS client.\nPlease store your access token in the 'WATTSON_TOKEN' and the issuer id (up to version 1 also the issuer url) in the 'WATTSON_ISSUER' environment variable: 'export WATTSON_TOKEN=<your access token>', 'export WATTSON_ISSUER=<the issuer id>'. The url of watts can be stored in the environment variable 'WATTSON_URL': export WATTSON_URL=<url of watts>").Version(wattsonVersion)
+	app     = kingpin.New("wattson", "The WaTTS client.\nPlease store your access token in the 'WATTSON_TOKEN' and the issuer id (up to version 1 the issuer url) in the 'WATTSON_ISSUER' environment variable: 'export WATTSON_TOKEN=<your access token>', 'export WATTSON_ISSUER=<the issuer id>'. The url of watts can be stored in the environment variable 'WATTSON_URL': export WATTSON_URL=<url of watts>").Version(wattsonVersion)
 	hostUrl = app.Flag("url", "the base url of watts' rest interface").Short('u').String()
 
 	protVersion = app.Flag("protver", "protocol version to use (can be 0, 1 or 2)").Default("2").Short('p').Int()
