@@ -20,6 +20,7 @@ _cgo_export.*
 _testmain.go
 
 wattson
+wattson_container_*.tar
 pkg-build/
 vendor/
 src/
