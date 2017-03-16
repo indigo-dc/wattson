@@ -1,6 +1,9 @@
 # Wattson
 The WaTTS (INDIGO Token Translation Service) command line client
 
+## Installing
+Please install the [latest realease](https://github.com/indigo-dc/wattson/releases/latest) of
+wattson at your system or import the Docker container (see below).
 
 ## Quickstart
 Once installed using wattson is straight forward:
@@ -148,3 +151,29 @@ credential sucessfully revoked
 ```
 
 For more information and more examples please see [the documentation](https://indigo-dc.gitbooks.io/wattson/content/)
+
+## Using Docker
+If your system is not supported with packages you can still use wattson through a lightweight
+Docker container.
+Download the container in the release section and import it using the `docker load` command:
+```
+docker load --input wattson_container_1.0.1.tar
+```
+
+After loading the container you can use it to run orchent:
+```
+docker run wattson:1.0.1 --version
+docker run orchent:1.0.1 --help
+```
+
+For information on how to pass environment settings to the docker see
+```
+docker run --help
+```
+
+## Building wattson
+wattson can be build from source by running
+```
+./utils/compile.sh
+```
+After generating the binary you can eithe use it locally or install it in e.g. /usr/local/bin
