@@ -164,7 +164,7 @@ Listing:
  - The Id, e.g. x509
  - The status and authorization status, e.g. enabled/authorized
  - Flags/Icons
-   - AT!: this service receives your plugins, only use it if you really trust/need it
+   - AT!: this service receives your access-token, only use it if you really trust/need it
  - A description of the service
  - The number of credentials requested and the max. allowed, e.g. 0/3
  - The parameter sets, these are used for advanced requests, desribed later
