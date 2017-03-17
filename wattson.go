@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-const wattsonVersion string = "1.0.1"
+const wattsonVersion string = "1.1.0"
 
 var (
 	app     = kingpin.New("wattson", "The WaTTS client.\nPlease store your access token in the 'WATTSON_TOKEN' and the issuer id (up to version 1 the issuer url) in the 'WATTSON_ISSUER' environment variable: 'export WATTSON_TOKEN=<your access token>', 'export WATTSON_ISSUER=<the issuer id>'. The url of watts can be stored in the environment variable 'WATTSON_URL': export WATTSON_URL=<url of watts>").Version(wattsonVersion)
@@ -150,6 +150,7 @@ type WattsService struct {
 	LimitReached bool                `json:"limit_reached"`
 	Enabled      bool                `json:"enabled"`
 	Authorized   bool                `json:"authorized"`
+	PassAT       bool                `json:"pass_access_token"`
 	Tooltip      string              `json:"authz_tooltip"`
 	Params       [][]WattsServiceParam `json:"params"`
 }
@@ -166,12 +167,16 @@ func (serv WattsService) String() string {
 		auth = "authorized"
 		tooltip = ""
 	}
+	icons := " "
+	if serv.PassAT {
+		icons = icons + "AT! "
+	}
 	reached := ""
 	if serv.LimitReached {
 		reached = "(limit reached)"
 	}
 	if *protVersion == 2 {
-		output = fmt.Sprintf("Service [%s][%s/%s] %s\n", serv.Id, on, auth, serv.Desc)
+		output = fmt.Sprintf("Service [%s][%s/%s] [%s] %s\n", serv.Id, on, auth, icons, serv.Desc)
 		if tooltip != "" {
 			output = output + fmt.Sprintf("   %s\n", tooltip)
 		}
