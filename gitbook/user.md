@@ -121,13 +121,13 @@ $ wattson lsserv
 connecting to https://tts-dev.data.kit.edu/api/v2/ using protocol version 2
 retrieving service list:
 
-Service [x509][enabled/authorized] A simple, non trusted demo CA
+Service [x509][enabled/authorized] [ ] A simple, non trusted demo CA
  - credenitals: 0/3
  - parameter sets:
     Empty Parameter Set (allows basic request)
 
 
-Service [aarc_ssh][enabled/NOT AUTHORIZED] Ssh Key Deployment on multiple VMs
+Service [aarc_ssh][enabled/NOT AUTHORIZED] [ ] Ssh Key Deployment on multiple VMs
    Your authorisation is insufficient for this service. This may be due to missing group membership or due to a too low Level of Assurance (LoA) (Yes, we already support that kind of stuff ;D)
  - credenitals: 0/1
  - parameter sets:
@@ -137,7 +137,7 @@ Service [aarc_ssh][enabled/NOT AUTHORIZED] Ssh Key Deployment on multiple VMs
     Empty Parameter Set (allows basic request)
 
 
-Service [indigo_ssh][enabled/authorized] Example Ssh Key Deployment
+Service [indigo_ssh][enabled/authorized] [ ] Example Ssh Key Deployment
  - credenitals: 0/1
  - parameter sets:
     Parameter Set:
@@ -146,14 +146,14 @@ Service [indigo_ssh][enabled/authorized] Example Ssh Key Deployment
     Empty Parameter Set (allows basic request)
 
 
-Service [HBP_S3][enabled/NOT AUTHORIZED] Self Service for your HBP-S3 storage keys
+Service [HBP_S3][enabled/NOT AUTHORIZED] [ AT! ] Self Service for your HBP-S3 storage keys
    The S3 key creation is only active when you are a member of the HBP group 'hbp-kit-cloud'
  - credenitals: 0/1
  - parameter sets:
     Empty Parameter Set (allows basic request)
 
 
-Service [info][enabled/authorized] Simple Info Service
+Service [info][enabled/authorized] [ ] Simple Info Service
  - credenitals: 0/1
  - parameter sets:
     Empty Parameter Set (allows basic request)
@@ -163,6 +163,9 @@ Each block represents one service.
 Listing:
  - The Id, e.g. x509
  - The status and authorization status, e.g. enabled/authorized
+ - Flags/Icons
+   - AT!: this service receives your access-token, only use it if you really trust/need it
+ - A description of the service
  - The number of credentials requested and the max. allowed, e.g. 0/3
  - The parameter sets, these are used for advanced requests, desribed later
    - Only if the "Empty Parameter Set (allows basic request)" is present a basic request is possible
