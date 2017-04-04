@@ -38,7 +38,7 @@ The following line will set up the authorization for the command line client and
 services:
 ```
 export WATTSON_TOKEN=<paste the copied text from the dialog here>
-export WATTSON_ISSUER=https://iam-test.indigo-datacloud.eu/
+export WATTSON_ISSUER=iam
 wattson lsserv
 ```
 The output should be similar to:
