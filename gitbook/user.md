@@ -6,14 +6,14 @@ information with its 'help' command, just call `wattson --help`.
 $ wattson --help
 usage: wattson [<flags>] <command> [<args> ...]
 
-The Token Translation Service (TTS) client. Please store your access token in the 'WATTSON_TOKEN' and the issuer url in the 'WATTSON_ISSUER' environment variable:
-'export WATTSON_TOKEN=<your access token>', 'export WATTSON_ISSUER=<the issuer url>'. The url of the WATTS can be stored in the environment variable 'WATTSON_URL':
-export WATTSON_URL=<url of the tts>
+The WaTTS client. Please store your access token in the 'WATTSON_TOKEN' and the issuer id (up to version 1 the issuer url) in the 'WATTSON_ISSUER' environment
+variable: 'export WATTSON_TOKEN=<your access token>', 'export WATTSON_ISSUER=<the issuer id>'. The url of watts can be stored in the environment variable
+'WATTSON_URL': export WATTSON_URL=<url of watts>
 
 Flags:
       --help       Show context-sensitive help (also try --help-long and --help-man).
       --version    Show application version.
-  -u, --url=URL    the base url of the WATTS rest interface
+  -u, --url=URL    the base url of watts' rest interface
   -p, --protver=2  protocol version to use (can be 0, 1 or 2)
   -j, --json       enable json output
       --debug      enable debug output
@@ -23,7 +23,7 @@ Commands:
     Show help.
 
   info
-    get the information about the WATTS running, e.g. its version
+    get the information about watts, e.g. its version
 
   lsprov
     list all OpenID Connect provider
@@ -34,11 +34,12 @@ Commands:
   lscred
     list all credentials
 
-  request <serviceId>
+  request <serviceId> [<parameter>]
     request a credential for a service
 
   revoke <credId>
     revoke a credential
+
 ```
 
 If you have questions or found a bug please always include the version on your description:
@@ -50,7 +51,7 @@ wattson --version
 ## Client setup
 The client is configured by environment variables:
  - WATTSON_URL: the base url of the Token Translation service, e.g. `https://tts-dev.data.kit.edu`
- - WATTSON_ISSUER: the issuer url of the OpenId Connect provider in use (see `lsprov`)
+ - WATTSON_ISSUER: the issuer id of the OpenId Connect provider in use (see `lsprov`). For protocol version 1 this is the issuer url.
  - WATTSON_TOKEN: the access token received from the OpenId Connect provider, e.g. using the web interface of the Token Translation Service
 
 All commands need at least the `WATTSON_URL` to be set:
@@ -61,7 +62,7 @@ change the url to fit your needs, alternativly the `--url` flag can be used.
 
 Issuer and Token are set the same way, commands that need those to be set are marked with *AUTH*:
 ```
-export WATTSON_ISSUER=<the issuer url>
+export WATTSON_ISSUER=<the issuer id>
 export WATTSON_TOKEN=<the access token>
 ```
 
