@@ -7,6 +7,7 @@ import (
 	"github.com/dghubble/sling"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -44,11 +45,16 @@ type WattsError struct {
 }
 
 func (e WattsError) Error() string {
+	output := ""
 	if is_error(&e) {
-		return fmt.Sprintf("Error: %s", e.Message)
-	} else {
-		return ""
+		if *jsonOutput {
+			json, _ := json.Marshal(e)
+			output = string(json)
+		} else {
+			output = fmt.Sprintf("Error: %s", e.Message)
+		}
 	}
+	return output
 }
 
 func is_error(e *WattsError) bool {
@@ -542,10 +548,75 @@ func credential_revoke(credId string, base *sling.Sling) {
 	}
 }
 
+func get_issuer() (issuerSet bool, issuerValue string, agentIssuer string) {
+	agentIssuer, agentSet := os.LookupEnv("WATTSON_AGENT_ISSUER")
+	issuerValue, issuerSet = os.LookupEnv("WATTSON_ISSUER")
+	if !agentSet && issuerSet {
+		agentIssuer = issuerValue
+	}
+	if !issuerSet && (! *jsonOutput) {
+		fmt.Println("*** WARNING: no issuer has been provided ***")
+		agentIssuer = ""
+		issuerValue = ""
+	}
+	return issuerSet, issuerValue, agentIssuer
+}
+
+func try_agent_token(provider string) (tokenSet bool, tokenValue string) {
+	socketValue, socketSet := os.LookupEnv("OIDC_SOCK")
+	tokenSet = false
+	tokenValue = ""
+	if !socketSet {
+		return tokenSet, tokenValue
+	}
+
+	c, err := net.Dial("unixpacket", socketValue)
+	if err != nil  && (! *jsonOutput){
+		fmt.Printf("could not connect to socket %s: %s\n", socketValue, err.Error())
+		return tokenSet, tokenValue
+	}
+	defer c.Close()
+
+	ipcReq := fmt.Sprintf(`{"request":"access_token","provider":"%s","min_valid_period":120}`, provider)
+	_, err = c.Write([]byte(ipcReq))
+	if err != nil  && (! *jsonOutput){
+		fmt.Printf("could not write to socket %s: %s\n", socketValue, err.Error())
+		return tokenSet, tokenValue
+	}
+	var response = [4096]byte{}
+	length, err := c.Read(response[0:4096])
+	if err != nil  && (! *jsonOutput){
+		fmt.Printf("could not read from socket %s: %s\n", socketValue, err.Error())
+		return tokenSet, tokenValue
+	}
+
+	oidcToken := make(map[string]string)
+	jsonErr := json.Unmarshal(response[0:(length -1)], &oidcToken)
+	if jsonErr != nil  && (! *jsonOutput){
+		fmt.Printf("error parsing the oidc response: %s\n", jsonErr)
+		return tokenSet, tokenValue
+	}
+	tokenValue, tokenSet =  oidcToken["access_token"]
+	if tokenSet  && (! *jsonOutput){
+		fmt.Println("received token from oidc-agent")
+		fmt.Println(tokenValue)
+	}
+	return tokenSet, tokenValue
+}
+
+func try_token(issuer string) (tokenSet bool, token string) {
+	tokenValue, tokenSet := os.LookupEnv("WATTSON_TOKEN")
+	if !tokenSet {
+		return try_agent_token(issuer)
+	}
+	return tokenSet, tokenValue
+}
+
+
 func base_connection(urlBase string) *sling.Sling {
 	client := client()
-	tokenValue, tokenSet := os.LookupEnv("WATTSON_TOKEN")
-	issuerValue, issuerSet := os.LookupEnv("WATTSON_ISSUER")
+	issuerSet, issuerValue, agentIssuer := get_issuer()
+	tokenSet, tokenValue := try_token(agentIssuer)
 	base := sling.New().Client(client).Base(urlBase)
 	base = base.Set("User-Agent", "Wattson")
 	base = base.Set("Accept", "application/json")
@@ -553,16 +624,10 @@ func base_connection(urlBase string) *sling.Sling {
 		token := "Bearer " + tokenValue
 		base = base.Set("Authorization", token)
 		if *protVersion <= 1 {
-			return base.Set("X-OpenId-Connect-Issuer", issuerValue)
-		} else {
-			return base
+			base = base.Set("X-OpenId-Connect-Issuer", issuerValue)
 		}
-	} else {
-		fmt.Println(" ")
-		fmt.Println("*** WARNING: either access token or issuer has not been specified ***")
-		fmt.Println(" ")
-		return base
 	}
+	return base
 }
 
 func base_url(rawUrl string) string {
