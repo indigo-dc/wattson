@@ -548,21 +548,21 @@ func credential_revoke(credId string, base *sling.Sling) {
 	}
 }
 
-func get_issuer() (issuerSet bool, issuerValue string, agentIssuer string) {
-	agentIssuer, agentSet := os.LookupEnv("WATTSON_AGENT_ISSUER")
+func get_issuer_account() (issuerSet bool, issuerValue string, agentIssuer string) {
+	agentAccount, accountSet := os.LookupEnv("WATTSON_AGENT_ACCOUNT")
 	issuerValue, issuerSet = os.LookupEnv("WATTSON_ISSUER")
-	if !agentSet && issuerSet {
-		agentIssuer = issuerValue
+	if !accountSet && issuerSet {
+		agentAccount = issuerValue
 	}
 	if !issuerSet && (! *jsonOutput) {
 		fmt.Println("*** WARNING: no issuer has been provided ***")
 		agentIssuer = ""
 		issuerValue = ""
 	}
-	return issuerSet, issuerValue, agentIssuer
+	return issuerSet, issuerValue, agentAccount
 }
 
-func try_agent_token(provider string) (tokenSet bool, tokenValue string) {
+func try_agent_token(account string) (tokenSet bool, tokenValue string) {
 	socketValue, socketSet := os.LookupEnv("OIDC_SOCK")
 	tokenSet = false
 	tokenValue = ""
@@ -577,7 +577,7 @@ func try_agent_token(provider string) (tokenSet bool, tokenValue string) {
 	}
 	defer c.Close()
 
-	ipcReq := fmt.Sprintf(`{"request":"access_token","provider":"%s","min_valid_period":120}`, provider)
+	ipcReq := fmt.Sprintf(`{"request":"access_token","account":"%s","min_valid_period":120}`, account)
 	_, err = c.Write([]byte(ipcReq))
 	if err != nil  && (! *jsonOutput){
 		fmt.Printf("could not write to socket %s: %s\n", socketValue, err.Error())
@@ -615,8 +615,8 @@ func try_token(issuer string) (tokenSet bool, token string) {
 
 func base_connection(urlBase string) *sling.Sling {
 	client := client()
-	issuerSet, issuerValue, agentIssuer := get_issuer()
-	tokenSet, tokenValue := try_token(agentIssuer)
+	issuerSet, issuerValue, agentAccount := get_issuer_account()
+	tokenSet, tokenValue := try_token(agentAccount)
 	base := sling.New().Client(client).Base(urlBase)
 	base = base.Set("User-Agent", "Wattson")
 	base = base.Set("Accept", "application/json")
