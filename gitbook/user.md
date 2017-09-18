@@ -1,14 +1,35 @@
 # User Guide
-Using wattson is made as easy as possible. In case you are lost orchent provides a lot of
+Using wattson is made as easy as possible. In case you are lost wattson provides a lot of
 information with its 'help' command, just call `wattson --help`.
 
 ```
 $ wattson --help
 usage: wattson [<flags>] <command> [<args> ...]
 
-The WaTTS client. Please store your access token in the 'WATTSON_TOKEN' and the issuer id (up to version 1 the issuer url) in the 'WATTSON_ISSUER' environment
-variable: 'export WATTSON_TOKEN=<your access token>', 'export WATTSON_ISSUER=<the issuer id>'. The url of watts can be stored in the environment variable
-'WATTSON_URL': export WATTSON_URL=<url of watts>
+The WaTTS client.
+
+
+
+Please store your issuer id (up to version 1 the issuer url) in the 'WATTSON_ISSUER' environment variable:
+
+  export WATTSON_ISSUER=<the issuer id>
+
+The url of WaTTS can be stored in the environment variable 'WATTSON_URL':
+
+  export WATTSON_URL=<url of watts>
+
+It is possible to either pass the access token directly to wattson or use oidc-agent to retrieve access tokens. To use oidc-agent the environment variable
+'OIDC_SOCK' needs to point to the socket of the agent and 'WATTSON_AGENT_ACCOUNT' needs to contain the oidc-agent account name to use, the account needs to be
+loaded, else it will fail:
+
+  export OIDC_SOCK=<path to the oidc-agent socket> (usually this is already exported)
+  export WATTSON_AGENT_ACCOUNT=<account of oidc-agent to use>
+
+
+If you want to pass the access token directly please use the WATTSON_TOKEN variable:
+
+  export WATTSON_TOKEN=<access token>
+
 
 Flags:
       --help       Show context-sensitive help (also try --help-long and --help-man).
@@ -52,7 +73,9 @@ wattson --version
 The client is configured by environment variables:
  - WATTSON_URL: the base url of the Token Translation service, e.g. `https://tts-dev.data.kit.edu`
  - WATTSON_ISSUER: the issuer id of the OpenId Connect provider in use (see `lsprov`). For protocol version 1 this is the issuer url.
- - WATTSON_TOKEN: the access token received from the OpenId Connect provider, e.g. using the web interface of the Token Translation Service
+ - WATTSON_TOKEN: the access token received from the OpenId Connect provider, e.g. using the web interface of WaTTS
+ - OIDC_SOCK: pointing to the path of the unix socket of the oidc-agent
+ - WATTSON_AGENT_ACCOUNT: the account used with the oidc-agent, this account must be loaded.
 
 All commands need at least the `WATTSON_URL` to be set:
 ```
@@ -61,10 +84,19 @@ export WATTSON_URL=https://tts-dev.data.kit.edu
 change the url to fit your needs, alternativly the `--url` flag can be used.
 
 Issuer and Token are set the same way, commands that need those to be set are marked with *AUTH*:
+Either:
 ```
 export WATTSON_ISSUER=<the issuer id>
 export WATTSON_TOKEN=<the access token>
 ```
+or, if using the oidc-agent, important, not setting the 'WATTSON_TOKEN':
+```
+export WATTSON_ISSUER=<the issuer id>
+export WATTSON_AGENT_ACCOUNT=<the oidc-agent account>
+export OIDC_SOCK=<the oidc-agent socket>
+```
+If 'WATTSON_TOKEN' is set it overrides the oidc-agent settings.
+
 
 ## Flags
 Flags can be used with any command and change the behaviour of the client:

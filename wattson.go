@@ -14,10 +14,10 @@ import (
 	"strings"
 )
 
-const wattsonVersion string = "1.1.0"
+const wattsonVersion string = "1.2.0"
 
 var (
-	app     = kingpin.New("wattson", "The WaTTS client.\nPlease store your access token in the 'WATTSON_TOKEN' and the issuer id (up to version 1 the issuer url) in the 'WATTSON_ISSUER' environment variable: 'export WATTSON_TOKEN=<your access token>', 'export WATTSON_ISSUER=<the issuer id>'. The url of watts can be stored in the environment variable 'WATTSON_URL': export WATTSON_URL=<url of watts>").Version(wattsonVersion)
+	app     = kingpin.New("wattson", "The WaTTS client.\n \nPlease store your issuer id (up to version 1 the issuer url) in the 'WATTSON_ISSUER' environment variable:\n export WATTSON_ISSUER=<the issuer id> \nThe url of WaTTS can be stored in the environment variable 'WATTSON_URL':\n export WATTSON_URL=<url of watts>\n\nIt is possible to either pass the access token directly to wattson or use oidc-agent to retrieve access tokens.\nTo use oidc-agent the environment variable 'OIDC_SOCK' needs to point to the socket of the agent and 'WATTSON_AGENT_ACCOUNT' needs to contain the oidc-agent account name to use, the account needs to be loaded, else it will fail: \n export OIDC_SOCK=<path to the oidc-agent socket> (usually this is already exported) \n export WATTSON_AGENT_ACCOUNT=<account of oidc-agent to use> \n \nIf you want to pass the access token directly please use the WATTSON_TOKEN variable: \n export WATTSON_TOKEN=<access token>\n \n").Version(wattsonVersion)
 	hostUrl = app.Flag("url", "the base url of watts' rest interface").Short('u').String()
 
 	protVersion = app.Flag("protver", "protocol version to use (can be 0, 1 or 2)").Default("2").Short('p').Int()
@@ -584,14 +584,15 @@ func try_agent_token(account string) (tokenSet bool, tokenValue string) {
 		return tokenSet, tokenValue
 	}
 	var response = [4096]byte{}
-	length, err := c.Read(response[0:4096])
+	length, err := c.Read(response[0:4095])
 	if err != nil  && (! *jsonOutput){
 		fmt.Printf("could not read from socket %s: %s\n", socketValue, err.Error())
 		return tokenSet, tokenValue
 	}
 
+	response[length] = 0
 	oidcToken := make(map[string]string)
-	jsonErr := json.Unmarshal(response[0:(length -1)], &oidcToken)
+	jsonErr := json.Unmarshal(response[0:length], &oidcToken)
 	if jsonErr != nil  && (! *jsonOutput){
 		fmt.Printf("error parsing the oidc response: %s\n", jsonErr)
 		return tokenSet, tokenValue
@@ -599,10 +600,10 @@ func try_agent_token(account string) (tokenSet bool, tokenValue string) {
 	tokenValue, tokenSet =  oidcToken["access_token"]
 	if tokenSet  && (! *jsonOutput){
 		fmt.Println("received token from oidc-agent")
-		fmt.Println(tokenValue)
 	}
 	return tokenSet, tokenValue
 }
+
 
 func try_token(issuer string) (tokenSet bool, token string) {
 	tokenValue, tokenSet := os.LookupEnv("WATTSON_TOKEN")
