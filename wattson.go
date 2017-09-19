@@ -14,7 +14,7 @@ import (
 	"strings"
 )
 
-const wattsonVersion string = "1.2.0"
+const wattsonVersion string = "1.2.1"
 
 var (
 	app     = kingpin.New("wattson", "The WaTTS client.\n \nPlease store your issuer id (up to version 1 the issuer url) in the 'WATTSON_ISSUER' environment variable:\n export WATTSON_ISSUER=<the issuer id> \nThe url of WaTTS can be stored in the environment variable 'WATTSON_URL':\n export WATTSON_URL=<url of watts>\n\nIt is possible to either pass the access token directly to wattson or use oidc-agent to retrieve access tokens.\nTo use oidc-agent the environment variable 'OIDC_SOCK' needs to point to the socket of the agent and 'WATTSON_AGENT_ACCOUNT' needs to contain the oidc-agent account name to use, the account needs to be loaded, else it will fail: \n export OIDC_SOCK=<path to the oidc-agent socket> (usually this is already exported) \n export WATTSON_AGENT_ACCOUNT=<account of oidc-agent to use> \n \nIf you want to pass the access token directly please use the WATTSON_TOKEN variable: \n export WATTSON_TOKEN=<access token>\n \n").Version(wattsonVersion)
@@ -23,7 +23,7 @@ var (
 	protVersion = app.Flag("protver", "protocol version to use (can be 0, 1 or 2)").Default("2").Short('p').Int()
 	jsonOutput  = app.Flag("json", "enable json output").Short('j').Bool()
 	debugOutput = app.Flag("debug", "enable debug output").Bool()
-	wattsInfo     = app.Command("info", "get the information about watts, e.g. its version")
+	wattsInfo   = app.Command("info", "get the information about watts, e.g. its version")
 
 	lsProv = app.Command("lsprov", "list all OpenID Connect provider")
 
@@ -31,8 +31,8 @@ var (
 
 	lsCred = app.Command("lscred", "list all credentials")
 
-	request   = app.Command("request", "request a credential for a service")
-	requestId = request.Arg("serviceId", "the id of the service to request a credential").Required().String()
+	request       = app.Command("request", "request a credential for a service")
+	requestId     = request.Arg("serviceId", "the id of the service to request a credential").Required().String()
 	requestParams = request.Arg("parameter", "a string containing a json object with the parameter").String()
 
 	revoke       = app.Command("revoke", "revoke a credential")
@@ -146,18 +146,18 @@ func (param WattsServiceParam) String() string {
 }
 
 type WattsService struct {
-	Id           string              `json:"id"`
-	Desc         string              `json:"description"`
-	Type         string              `json:"type"`
-	Host         string              `json:"host"`
-	Port         string              `json:"port"`
-	CredCount    int                 `json:"cred_count"`
-	CredLimit    int                 `json:"cred_limit"`
-	LimitReached bool                `json:"limit_reached"`
-	Enabled      bool                `json:"enabled"`
-	Authorized   bool                `json:"authorized"`
-	PassAT       bool                `json:"pass_access_token"`
-	Tooltip      string              `json:"authz_tooltip"`
+	Id           string                `json:"id"`
+	Desc         string                `json:"description"`
+	Type         string                `json:"type"`
+	Host         string                `json:"host"`
+	Port         string                `json:"port"`
+	CredCount    int                   `json:"cred_count"`
+	CredLimit    int                   `json:"cred_limit"`
+	LimitReached bool                  `json:"limit_reached"`
+	Enabled      bool                  `json:"enabled"`
+	Authorized   bool                  `json:"authorized"`
+	PassAT       bool                  `json:"pass_access_token"`
+	Tooltip      string                `json:"authz_tooltip"`
 	Params       [][]WattsServiceParam `json:"params"`
 }
 
@@ -257,11 +257,11 @@ func (credWrap TtsV1CredWrap) String() string {
 }
 
 type WattsonCredential struct {
-	Id        string               `json:"id"`
-	InfoId    string               `json:"cred_id"`
-	CTime     string               `json:"ctime"`
-	Interface string               `json:"interface"`
-	ServiceId string               `json:"service_id"`
+	Id        string                   `json:"id"`
+	InfoId    string                   `json:"cred_id"`
+	CTime     string                   `json:"ctime"`
+	Interface string                   `json:"interface"`
+	ServiceId string                   `json:"service_id"`
 	Entries   []WattsonCredentialEntry `json:"entries"`
 }
 
@@ -344,8 +344,8 @@ func (credList WattsonCredentialListV1) String() string {
 }
 
 type WattsonCredentialRequest struct {
-	ServiceId string `json:"service_id"`
-	Params (map[string]interface{}) `json:"params"`
+	ServiceId string                   `json:"service_id"`
+	Params    (map[string]interface{}) `json:"params"`
 }
 
 func copy_header(Name string) bool {
@@ -496,7 +496,7 @@ func credential_request(serviceId string, parameter string, base *sling.Sling) {
 
 	body := &WattsonCredentialRequest{
 		ServiceId: serviceId,
-		Params: parameterMap,
+		Params:    parameterMap,
 	}
 
 	if *protVersion == 2 {
@@ -554,12 +554,18 @@ func get_issuer_account() (issuerSet bool, issuerValue string, agentIssuer strin
 	if !accountSet && issuerSet {
 		agentAccount = issuerValue
 	}
-	if !issuerSet && (! *jsonOutput) {
+	if !issuerSet && (!*jsonOutput) {
 		fmt.Println("*** WARNING: no issuer has been provided ***")
 		agentIssuer = ""
 		issuerValue = ""
 	}
 	return issuerSet, issuerValue, agentAccount
+}
+
+func user_info(format string, a ...interface{}) {
+	if !*jsonOutput {
+		fmt.Printf(format, a)
+	}
 }
 
 func try_agent_token(account string) (tokenSet bool, tokenValue string) {
@@ -571,39 +577,38 @@ func try_agent_token(account string) (tokenSet bool, tokenValue string) {
 	}
 
 	c, err := net.Dial("unixpacket", socketValue)
-	if err != nil  && (! *jsonOutput){
-		fmt.Printf("could not connect to socket %s: %s\n", socketValue, err.Error())
+	if err != nil {
+		user_info("could not connect to socket %s: %s\n", socketValue, err.Error())
 		return tokenSet, tokenValue
 	}
 	defer c.Close()
 
 	ipcReq := fmt.Sprintf(`{"request":"access_token","account":"%s","min_valid_period":120}`, account)
 	_, err = c.Write([]byte(ipcReq))
-	if err != nil  && (! *jsonOutput){
-		fmt.Printf("could not write to socket %s: %s\n", socketValue, err.Error())
+	if err != nil {
+		user_info("could not write to socket %s: %s\n", socketValue, err.Error())
 		return tokenSet, tokenValue
 	}
 	var response = [4096]byte{}
 	length, err := c.Read(response[0:4095])
-	if err != nil  && (! *jsonOutput){
-		fmt.Printf("could not read from socket %s: %s\n", socketValue, err.Error())
+	if err != nil {
+		user_info("could not read from socket %s: %s\n", socketValue, err.Error())
 		return tokenSet, tokenValue
 	}
 
 	response[length] = 0
 	oidcToken := make(map[string]string)
 	jsonErr := json.Unmarshal(response[0:length], &oidcToken)
-	if jsonErr != nil  && (! *jsonOutput){
-		fmt.Printf("error parsing the oidc response: %s\n", jsonErr)
+	if jsonErr != nil {
+		user_info("error parsing the oidc response: %s\n", jsonErr)
 		return tokenSet, tokenValue
 	}
-	tokenValue, tokenSet =  oidcToken["access_token"]
-	if tokenSet  && (! *jsonOutput){
-		fmt.Println("received token from oidc-agent")
+	tokenValue, tokenSet = oidcToken["access_token"]
+	if tokenSet {
+		user_info("received token from oidc-agent\n")
 	}
 	return tokenSet, tokenValue
 }
-
 
 func try_token(issuer string) (tokenSet bool, token string) {
 	tokenValue, tokenSet := os.LookupEnv("WATTSON_TOKEN")
@@ -612,7 +617,6 @@ func try_token(issuer string) (tokenSet bool, token string) {
 	}
 	return tokenSet, tokenValue
 }
-
 
 func base_connection(urlBase string) *sling.Sling {
 	client := client()
