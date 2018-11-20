@@ -150,5 +150,23 @@ pipeline {
                 }
             }
         }
+
+        stage('Notifications') {
+            when {
+                buildingTag()
+            }
+            steps {
+                JiraIssueNotification(
+                    'DEEP',
+                    'DPM',
+                    '10204',
+                    "[preview-testbed] New wattson version ${env.BRANCH_NAME} available",
+                    "Check new artifacts at:\n\t- Docker image: [${dockerhub_image_id}|https://hub.docker.com/r/${dockerhub_repo}/tags/]\n",
+                    ['wp3', 'preview-testbed', "wattson-${env.BRANCH_NAME}"],
+                    'Task',
+                    'mariojmdavid'
+                )
+            }
+        }
     }
 }
