@@ -14,7 +14,7 @@ import (
 	"strings"
 )
 
-const wattsonVersion string = "1.2.1"
+const wattsonVersion string = "1.2.2"
 
 var (
 	app     = kingpin.New("wattson", "The WaTTS client.\n \nPlease store your issuer id (up to version 1 the issuer url) in the 'WATTSON_ISSUER' environment variable:\n export WATTSON_ISSUER=<the issuer id> \nThe url of WaTTS can be stored in the environment variable 'WATTSON_URL':\n export WATTSON_URL=<url of watts>\n\nIt is possible to either pass the access token directly to wattson or use oidc-agent to retrieve access tokens.\nTo use oidc-agent the environment variable 'OIDC_SOCK' needs to point to the socket of the agent and 'WATTSON_AGENT_ACCOUNT' needs to contain the oidc-agent account name to use, the account needs to be loaded, else it will fail: \n export OIDC_SOCK=<path to the oidc-agent socket> (usually this is already exported) \n export WATTSON_AGENT_ACCOUNT=<account of oidc-agent to use> \n \nIf you want to pass the access token directly please use the WATTSON_TOKEN variable: \n export WATTSON_TOKEN=<access token>\n \n").Version(wattsonVersion)
