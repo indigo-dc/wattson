@@ -1,5 +1,7 @@
 #!/bin/bash
 
+DOCKER_REPO=${1:-wattson}
+
 GO=`which go`
 REALPATH=`which realpath`
 if [ "x$GO" == "x" ]; then
@@ -52,7 +54,7 @@ cp $WATTSON /tmp/wattson_docker/
 cp /etc/ssl/certs/ca-certificates.crt /tmp/wattson_docker/
 cd /tmp/wattson_docker/
 WATTSON_VERSION=`./wattson --version 2>&1`
-WATTSON_TAG="wattson:$WATTSON_VERSION"
+WATTSON_TAG="$DOCKER_REPO:$WATTSON_VERSION"
 WATTSON_DOCKER="$PATH_TO_REPO/wattson_container_${WATTSON_VERSION}.tar"
 docker image rm -f "$WATTSON_TAG"
 docker build -t "$WATTSON_TAG" .
