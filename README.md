@@ -1,4 +1,7 @@
 # Wattson
+
+[![Build Status](https://jenkins.indigo-datacloud.eu:8080/buildStatus/icon?job=Pipeline-as-code/wattson/master)](https://jenkins.indigo-datacloud.eu:8080/job/Pipeline-as-code/job/wattson/job/master/)
+
 The WaTTS (INDIGO Token Translation Service) command line client
 
 ## Installing
