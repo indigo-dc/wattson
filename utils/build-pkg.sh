@@ -21,7 +21,7 @@ GOOS=linux GOARCH=amd64 go build -o build/amd64/wattson wattson.go
 case $DISTRIBUTION in
     debian)
         GO_BIN="go-bin-deb"
-        PKG="wattson-$VERSION-amd64.deb"
+        PKG="wattson_${VERSION}_amd64.deb"
         PFLAG="-w"
         ;;
     centos)
