@@ -164,7 +164,13 @@ pipeline {
                     "Check new artifacts at:\n\t- Docker image: [${dockerhub_image_id}|https://hub.docker.com/r/${dockerhub_repo}/tags/]\n\t- RPMs/DEBs: ${env.BUILD_URL}\n",
                     ['wp3', 'preview-testbed', "wattson-${env.BRANCH_NAME}"],
                     'Task',
-                    'mariojmdavid'
+                    'mariojmdavid',
+                    ['wgcastell',
+                     'vkozlov',
+                     'dlugo',
+                     'keiichiito',
+                     'laralloret',
+                     'ignacioheredia']
                 )
             }
         }
