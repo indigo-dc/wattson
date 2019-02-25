@@ -38,12 +38,15 @@ pipeline {
                 label 'docker-build'
             }
             steps {
-                    OWASPDependencyCheckRun("$WORKSPACE/wattson", project="wattson")
+                OWASPDependencyCheckRun("$WORKSPACE/wattson", project="wattson")
             }
             post {
                 always {
                     OWASPDependencyCheckPublish()
-                    HTMLReport('', 'dependency-check-report.html', 'OWASP Dependency Report')
+                    HTMLReport(
+                        "$WORKSPACE/wattson",
+                        'dependency-check-report.html',
+                        'OWASP Dependency Report')
                     deleteDir()
                 }
             }
