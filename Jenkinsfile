@@ -1,6 +1,6 @@
 #!/usr/bin/groovy
 
-@Library(['github.com/indigo-dc/jenkins-pipeline-library']) _
+@Library(['github.com/indigo-dc/jenkins-pipeline-library@1.0.0']) _
 
 pipeline {
     agent {
@@ -38,12 +38,15 @@ pipeline {
                 label 'docker-build'
             }
             steps {
-                    OWASPDependencyCheckRun("$WORKSPACE/wattson", project="wattson")
+                OWASPDependencyCheckRun("$WORKSPACE/wattson", project="wattson")
             }
             post {
                 always {
                     OWASPDependencyCheckPublish()
-                    HTMLReport('', 'dependency-check-report.html', 'OWASP Dependency Report')
+                    HTMLReport(
+                        "$WORKSPACE/wattson",
+                        'dependency-check-report.html',
+                        'OWASP Dependency Report')
                     deleteDir()
                 }
             }
