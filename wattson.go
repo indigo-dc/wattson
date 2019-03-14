@@ -584,7 +584,7 @@ func try_agent_token(account string) (tokenSet bool, tokenValue string) {
 	}
 	defer c.Close()
 
-	ipcReq := fmt.Sprintf(`{"request":"access_token","account":"%s","min_valid_period":120}`, account)
+	ipcReq := fmt.Sprintf(`{"request":"access_token","account":"%s","min_valid_period":120,"application_hint":"wattson"}`, account)
 	_, err = c.Write([]byte(ipcReq))
 	if err != nil {
 		user_info("could not write to socket %s: %s\n", socketValue, err.Error())
