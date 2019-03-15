@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
 
 	"github.com/dghubble/sling"
+	"github.com/zachmann/liboidcagent-go/liboidcagent"
+
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -570,45 +571,11 @@ func user_info(format string, a ...interface{}) {
 }
 
 func try_agent_token(account string) (tokenSet bool, tokenValue string) {
-	socketValue, socketSet := os.LookupEnv("OIDC_SOCK")
-	tokenSet = false
-	tokenValue = ""
-	if !socketSet {
-		return tokenSet, tokenValue
-	}
-
-	c, err := net.Dial("unix", socketValue)
+	token, err := liboidcagent.GetAccessToken(account, 120, "", "wattson")
 	if err != nil {
-		user_info("could not connect to socket %s: %s\n", socketValue, err.Error())
-		return tokenSet, tokenValue
+		return false, tokenValue
 	}
-	defer c.Close()
-
-	ipcReq := fmt.Sprintf(`{"request":"access_token","account":"%s","min_valid_period":120,"application_hint":"wattson"}`, account)
-	_, err = c.Write([]byte(ipcReq))
-	if err != nil {
-		user_info("could not write to socket %s: %s\n", socketValue, err.Error())
-		return tokenSet, tokenValue
-	}
-	var response = [4096]byte{}
-	length, err := c.Read(response[0:4095])
-	if err != nil {
-		user_info("could not read from socket %s: %s\n", socketValue, err.Error())
-		return tokenSet, tokenValue
-	}
-
-	response[length] = 0
-	oidcToken := make(map[string]interface{})
-	jsonErr := json.Unmarshal(response[0:length], &oidcToken)
-	if jsonErr != nil {
-		user_info("error parsing the oidc response: %s\n", jsonErr)
-		return tokenSet, tokenValue
-	}
-	tokenValue, tokenSet = oidcToken["access_token"].(string)
-	if tokenSet {
-		user_info("received token from oidc-agent\n")
-	}
-	return tokenSet, tokenValue
+	return true, token
 }
 
 func try_token(issuer string) (tokenSet bool, token string) {
