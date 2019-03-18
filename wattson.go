@@ -554,7 +554,7 @@ func get_issuer_account() (issuerSet bool, issuerValue string, agentIssuer strin
 	agentAccount, accountSet := os.LookupEnv("WATTSON_AGENT_ACCOUNT")
 	issuerValue, issuerSet = os.LookupEnv("WATTSON_ISSUER")
 	if !accountSet && issuerSet {
-		agentAccount = issuerValue
+		// agentAccount = issuerValue
 	}
 	if !issuerSet && (!*jsonOutput) {
 		fmt.Println("*** WARNING: no issuer has been provided ***")
@@ -570,18 +570,42 @@ func user_info(format string, a ...interface{}) {
 	}
 }
 
-func try_agent_token(account string) (tokenSet bool, tokenValue string) {
-	token, err := liboidcagent.GetAccessToken(account, 120, "", "wattson")
-	if err != nil {
-		return false, tokenValue
+func try_agent_token(account string, issuer string, base *sling.Sling) (tokenSet bool, tokenValue string) {
+	if account != "" {
+		token, err := liboidcagent.GetAccessToken(account, 120, "", "wattson")
+		if err != nil {
+			fmt.Println("*** ERROR: Could not get token from oidc-agent and $WATTSON_TOKEN not set ***")
+			return false, tokenValue
+		}
+		return true, token
+	} else {
+		providerList := new(WattsProviderList)
+		wattsError := new(WattsError)
+		_, err := base.Get("./oidcp").Receive(providerList, wattsError)
+		if err != nil {
+			fmt.Printf("error requesting list of provider:\n %s\n", err)
+			return false, tokenValue
+		}
+		issuer_url := ""
+		for _, provider := range providerList.Provider {
+			if provider.Id == issuer {
+				issuer_url = provider.Issuer
+				break
+			}
+		}
+		token, err := liboidcagent.GetAccessTokenByIssuerUrl(issuer_url, 120, "", "wattson")
+		if err != nil {
+			fmt.Println("*** ERROR: Could not get token from oidc-agent and $WATTSON_TOKEN not set ***")
+			return false, tokenValue
+		}
+		return true, token
 	}
-	return true, token
 }
 
-func try_token(issuer string) (tokenSet bool, token string) {
+func try_token(agentAccount string, issuer string, base *sling.Sling) (tokenSet bool, token string) {
 	tokenValue, tokenSet := os.LookupEnv("WATTSON_TOKEN")
 	if !tokenSet {
-		return try_agent_token(issuer)
+		return try_agent_token(agentAccount, issuer, base)
 	}
 	return tokenSet, tokenValue
 }
@@ -589,10 +613,10 @@ func try_token(issuer string) (tokenSet bool, token string) {
 func base_connection(urlBase string) *sling.Sling {
 	client := client()
 	issuerSet, issuerValue, agentAccount := get_issuer_account()
-	tokenSet, tokenValue := try_token(agentAccount)
 	base := sling.New().Client(client).Base(urlBase)
 	base = base.Set("User-Agent", "Wattson")
 	base = base.Set("Accept", "application/json")
+	tokenSet, tokenValue := try_token(agentAccount, issuerValue, base)
 	if tokenSet && issuerSet {
 		token := "Bearer " + tokenValue
 		base = base.Set("Authorization", token)
