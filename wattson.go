@@ -19,7 +19,7 @@ import (
 const wattsonVersion string = "1.2.3"
 
 var (
-	app     = kingpin.New("wattson", "The WaTTS client.\n \nPlease store your issuer id (up to version 1 the issuer url) in the 'WATTSON_ISSUER' environment variable:\n export WATTSON_ISSUER=<the issuer id> \nThe url of WaTTS can be stored in the environment variable 'WATTSON_URL':\n export WATTSON_URL=<url of watts>\n\nIt is possible to either pass the access token directly to wattson or use oidc-agent to retrieve access tokens.\nTo use oidc-agent the environment variable 'OIDC_SOCK' needs to point to the socket of the agent and 'WATTSON_AGENT_ACCOUNT' needs to contain the oidc-agent account name to use, the account needs to be loaded, else it will fail: \n export OIDC_SOCK=<path to the oidc-agent socket> (usually this is already exported) \n export WATTSON_AGENT_ACCOUNT=<account of oidc-agent to use> \n \nIf you want to pass the access token directly please use the WATTSON_TOKEN variable: \n export WATTSON_TOKEN=<access token>\n \n").Version(wattsonVersion)
+	app     = kingpin.New("wattson", "The WaTTS client.\n \nPlease store your issuer id (up to version 1 the issuer url) in the 'WATTSON_ISSUER' environment variable:\n export WATTSON_ISSUER=<the issuer id> \nThe url of WaTTS can be stored in the environment variable 'WATTSON_URL':\n export WATTSON_URL=<url of watts>\n\nIt is possible to either pass the access token directly to wattson or use oidc-agent to retrieve access tokens.\nTo use oidc-agent the environment variable 'OIDC_SOCK' needs to point to the socket of the agent and you can set the account name that should be used in 'WATTSON_AGENT_ACCOUNT' (optional): \n export OIDC_SOCK=<path to the oidc-agent socket> (usually this is already exported) \n \nIf you want to pass the access token directly please use the WATTSON_TOKEN variable: \n export WATTSON_TOKEN=<access token>\n \n").Version(wattsonVersion)
 	hostUrl = app.Flag("url", "the base url of watts' rest interface").Short('u').String()
 
 	protVersion = app.Flag("protver", "protocol version to use (can be 0, 1 or 2)").Default("2").Short('p').Int()
@@ -566,7 +566,7 @@ func get_issuer_account() (issuerSet bool, issuerValue string, agentIssuer strin
 
 func user_info(format string, a ...interface{}) {
 	if !*jsonOutput {
-		fmt.Printf(format, a)
+		fmt.Printf(format, a...)
 	}
 }
 
@@ -574,7 +574,7 @@ func try_agent_token(account string, issuer string, base *sling.Sling) (tokenSet
 	if account != "" {
 		token, err := liboidcagent.GetAccessToken(account, 120, "", "wattson")
 		if err != nil {
-			fmt.Println("*** ERROR: Could not get token from oidc-agent and $WATTSON_TOKEN not set ***")
+			fmt.Println("*** WARNING: Could not get token from oidc-agent and $WATTSON_TOKEN not set ***")
 			return false, tokenValue
 		}
 		return true, token
@@ -595,7 +595,7 @@ func try_agent_token(account string, issuer string, base *sling.Sling) (tokenSet
 		}
 		token, err := liboidcagent.GetAccessTokenByIssuerUrl(issuer_url, 120, "", "wattson")
 		if err != nil {
-			fmt.Println("*** ERROR: Could not get token from oidc-agent and $WATTSON_TOKEN not set ***")
+			fmt.Println("*** WARNING: Could not get token from oidc-agent and $WATTSON_TOKEN not set ***")
 			return false, tokenValue
 		}
 		return true, token
