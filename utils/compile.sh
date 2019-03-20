@@ -22,6 +22,9 @@ echo "done"
 echo -n "  sling ... "
 go get github.com/dghubble/sling
 echo "done"
+echo -n "  liboidcagent ... "
+go get github.com/zachmann/liboidcagent-go/liboidcagent
+echo "done"
 echo -n "building wattson ... "
 go build -o wattson ${GOPATH}/wattson.go
 echo "done"

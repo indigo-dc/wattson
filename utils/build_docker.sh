@@ -43,6 +43,9 @@ echo "done"
 echo -n "  sling ... "
 go get github.com/dghubble/sling
 echo "done"
+echo -n "  liboidcagent ... "
+go get github.com/zachmann/liboidcagent-go/liboidcagent
+echo "done"
 echo -n "building wattson ... "
 CGO_ENABLED=0 GOOS=linux go build -a -v -o $WATTSON ${GOPATH}/wattson.go
 echo "done"
