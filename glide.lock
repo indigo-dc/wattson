@@ -1,5 +1,5 @@
-hash: 2cf0c476dba0bceb14bdc5df1ddf5e91445effacccb8fe0b5b596e99453bb6ae
-updated: 2019-03-20T14:26:18.312224236+01:00
+hash: e74534a23a2303e5c08e5f754b2916158902f27c8090f83dbdab4d3a814561b7
+updated: 2019-04-15T13:13:15.654694639+02:00
 imports:
 - name: github.com/alecthomas/template
   version: a0175ee3bccc567396460bf5acd36800cb10c49c
@@ -21,8 +21,8 @@ imports:
   version: 9235644dd9e52eeae6fa48efd539fdc351a0af53
   subpackages:
   - query
-- name: github.com/zachmann/liboidcagent-go
-  version: 0fe761bf9f7b97d87e227d19f4e70437e5b60574
+- name: github.com/indigo-dc/liboidcagent-go
+  version: 5a786cab8df1fba86e99f8c32bd12e9555b9b7aa
   subpackages:
   - liboidcagent
 - name: golang.org/x/net

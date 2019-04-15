@@ -23,7 +23,7 @@ echo -n "  sling ... "
 go get github.com/dghubble/sling
 echo "done"
 echo -n "  liboidcagent ... "
-go get github.com/zachmann/liboidcagent-go/liboidcagent
+go get github.com/indigo-dc/liboidcagent-go/liboidcagent
 echo "done"
 echo -n "building wattson ... "
 go build -o wattson ${GOPATH}/wattson.go
