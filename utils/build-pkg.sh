@@ -5,7 +5,7 @@ CURRENT_DIR=`pwd`
 cd `dirname $0`
 cd ..
 SOURCE_DIR=`pwd`
-VERSION=`git describe --tags`
+VERSION=`git describe --abbrev=0 --tags`
 source ./utils/prepare_system.sh
 
 # expecting to be in $GOPATH/src/github.com/indigo-dc/wattson
@@ -21,7 +21,7 @@ GOOS=linux GOARCH=amd64 go build -o build/amd64/wattson wattson.go
 case $DISTRIBUTION in
     debian)
         GO_BIN="go-bin-deb"
-        PKG="wattson-$VERSION-amd64.deb"
+        PKG="wattson_${VERSION}_amd64.deb"
         PFLAG="-w"
         ;;
     centos)

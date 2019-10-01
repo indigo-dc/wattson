@@ -4,20 +4,22 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/dghubble/sling"
-	"gopkg.in/alecthomas/kingpin.v2"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
+
+	"github.com/dghubble/sling"
+	"github.com/indigo-dc/liboidcagent-go/liboidcagent"
+
+	"gopkg.in/alecthomas/kingpin.v2"
 )
 
-const wattsonVersion string = "1.2.1"
+const wattsonVersion string = "1.2.5"
 
 var (
-	app     = kingpin.New("wattson", "The WaTTS client.\n \nPlease store your issuer id (up to version 1 the issuer url) in the 'WATTSON_ISSUER' environment variable:\n export WATTSON_ISSUER=<the issuer id> \nThe url of WaTTS can be stored in the environment variable 'WATTSON_URL':\n export WATTSON_URL=<url of watts>\n\nIt is possible to either pass the access token directly to wattson or use oidc-agent to retrieve access tokens.\nTo use oidc-agent the environment variable 'OIDC_SOCK' needs to point to the socket of the agent and 'WATTSON_AGENT_ACCOUNT' needs to contain the oidc-agent account name to use, the account needs to be loaded, else it will fail: \n export OIDC_SOCK=<path to the oidc-agent socket> (usually this is already exported) \n export WATTSON_AGENT_ACCOUNT=<account of oidc-agent to use> \n \nIf you want to pass the access token directly please use the WATTSON_TOKEN variable: \n export WATTSON_TOKEN=<access token>\n \n").Version(wattsonVersion)
+	app     = kingpin.New("wattson", "The WaTTS client.\n \nPlease store your issuer id (up to version 1 the issuer url) in the 'WATTSON_ISSUER' environment variable:\n export WATTSON_ISSUER=<the issuer id> \nThe url of WaTTS can be stored in the environment variable 'WATTSON_URL':\n export WATTSON_URL=<url of watts>\n\nIt is possible to either pass the access token directly to wattson or use oidc-agent to retrieve access tokens.\nTo use oidc-agent the environment variable 'OIDC_SOCK' needs to point to the socket of the agent and you can set the account name that should be used in 'WATTSON_AGENT_ACCOUNT' (optional): \n export OIDC_SOCK=<path to the oidc-agent socket> (usually this is already exported) \n \nIf you want to pass the access token directly please use the WATTSON_TOKEN variable: \n export WATTSON_TOKEN=<access token>\n \n").Version(wattsonVersion)
 	hostUrl = app.Flag("url", "the base url of watts' rest interface").Short('u').String()
 
 	protVersion = app.Flag("protver", "protocol version to use (can be 0, 1 or 2)").Default("2").Short('p').Int()
@@ -552,7 +554,7 @@ func get_issuer_account() (issuerSet bool, issuerValue string, agentIssuer strin
 	agentAccount, accountSet := os.LookupEnv("WATTSON_AGENT_ACCOUNT")
 	issuerValue, issuerSet = os.LookupEnv("WATTSON_ISSUER")
 	if !accountSet && issuerSet {
-		agentAccount = issuerValue
+		// agentAccount = issuerValue
 	}
 	if !issuerSet && (!*jsonOutput) {
 		fmt.Println("*** WARNING: no issuer has been provided ***")
@@ -564,56 +566,48 @@ func get_issuer_account() (issuerSet bool, issuerValue string, agentIssuer strin
 
 func user_info(format string, a ...interface{}) {
 	if !*jsonOutput {
-		fmt.Printf(format, a)
+		fmt.Printf(format, a...)
 	}
 }
 
-func try_agent_token(account string) (tokenSet bool, tokenValue string) {
-	socketValue, socketSet := os.LookupEnv("OIDC_SOCK")
-	tokenSet = false
-	tokenValue = ""
-	if !socketSet {
-		return tokenSet, tokenValue
+func try_agent_token(account string, issuer string, base *sling.Sling) (tokenSet bool, tokenValue string) {
+	if account != "" {
+		token, err := liboidcagent.GetAccessToken(account, 120, "", "wattson")
+		if err != nil {
+			fmt.Println("*** WARNING: Could not get token from oidc-agent and $WATTSON_TOKEN not set ***")
+			fmt.Printf("agent error: %s\n", err)
+			return false, tokenValue
+		}
+		return true, token
+	} else {
+		providerList := new(WattsProviderList)
+		wattsError := new(WattsError)
+		_, err := base.Get("./oidcp").Receive(providerList, wattsError)
+		if err != nil {
+			fmt.Printf("error requesting list of provider:\n %s\n", err)
+			return false, tokenValue
+		}
+		issuer_url := ""
+		for _, provider := range providerList.Provider {
+			if provider.Id == issuer {
+				issuer_url = provider.Issuer
+				break
+			}
+		}
+		token, err := liboidcagent.GetAccessTokenByIssuerURL(issuer_url, 120, "", "wattson")
+		if err != nil {
+			fmt.Println("*** WARNING: Could not get token from oidc-agent and $WATTSON_TOKEN not set ***")
+			fmt.Printf("agent error: %s\n", err)
+			return false, tokenValue
+		}
+		return true, token
 	}
-
-	c, err := net.Dial("unixpacket", socketValue)
-	if err != nil {
-		user_info("could not connect to socket %s: %s\n", socketValue, err.Error())
-		return tokenSet, tokenValue
-	}
-	defer c.Close()
-
-	ipcReq := fmt.Sprintf(`{"request":"access_token","account":"%s","min_valid_period":120}`, account)
-	_, err = c.Write([]byte(ipcReq))
-	if err != nil {
-		user_info("could not write to socket %s: %s\n", socketValue, err.Error())
-		return tokenSet, tokenValue
-	}
-	var response = [4096]byte{}
-	length, err := c.Read(response[0:4095])
-	if err != nil {
-		user_info("could not read from socket %s: %s\n", socketValue, err.Error())
-		return tokenSet, tokenValue
-	}
-
-	response[length] = 0
-	oidcToken := make(map[string]string)
-	jsonErr := json.Unmarshal(response[0:length], &oidcToken)
-	if jsonErr != nil {
-		user_info("error parsing the oidc response: %s\n", jsonErr)
-		return tokenSet, tokenValue
-	}
-	tokenValue, tokenSet = oidcToken["access_token"]
-	if tokenSet {
-		user_info("received token from oidc-agent\n")
-	}
-	return tokenSet, tokenValue
 }
 
-func try_token(issuer string) (tokenSet bool, token string) {
+func try_token(agentAccount string, issuer string, base *sling.Sling) (tokenSet bool, token string) {
 	tokenValue, tokenSet := os.LookupEnv("WATTSON_TOKEN")
 	if !tokenSet {
-		return try_agent_token(issuer)
+		return try_agent_token(agentAccount, issuer, base)
 	}
 	return tokenSet, tokenValue
 }
@@ -621,10 +615,10 @@ func try_token(issuer string) (tokenSet bool, token string) {
 func base_connection(urlBase string) *sling.Sling {
 	client := client()
 	issuerSet, issuerValue, agentAccount := get_issuer_account()
-	tokenSet, tokenValue := try_token(agentAccount)
 	base := sling.New().Client(client).Base(urlBase)
 	base = base.Set("User-Agent", "Wattson")
 	base = base.Set("Accept", "application/json")
+	tokenSet, tokenValue := try_token(agentAccount, issuerValue, base)
 	if tokenSet && issuerSet {
 		token := "Bearer " + tokenValue
 		base = base.Set("Authorization", token)
