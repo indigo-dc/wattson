@@ -16,7 +16,7 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
-const wattsonVersion string = "1.2.5"
+const wattsonVersion string = "1.2.6"
 
 var (
 	app     = kingpin.New("wattson", "The WaTTS client.\n \nPlease store your issuer id (up to version 1 the issuer url) in the 'WATTSON_ISSUER' environment variable:\n export WATTSON_ISSUER=<the issuer id> \nThe url of WaTTS can be stored in the environment variable 'WATTSON_URL':\n export WATTSON_URL=<url of watts>\n\nIt is possible to either pass the access token directly to wattson or use oidc-agent to retrieve access tokens.\nTo use oidc-agent the environment variable 'OIDC_SOCK' needs to point to the socket of the agent and you can set the account name that should be used in 'WATTSON_AGENT_ACCOUNT' (optional): \n export OIDC_SOCK=<path to the oidc-agent socket> (usually this is already exported) \n \nIf you want to pass the access token directly please use the WATTSON_TOKEN variable: \n export WATTSON_TOKEN=<access token>\n \n").Version(wattsonVersion)
@@ -389,16 +389,16 @@ func watts_info(base *sling.Sling) {
 	info := new(WattsInfo)
 	wattsError := new(WattsError)
 	if !*jsonOutput {
-		fmt.Println("retrieving information:")
+		fmt.Fprintln(os.Stderr, "retrieving information:")
 	}
 	resp, err := base.Get("./info").Receive(info, wattsError)
 	if err != nil {
-		fmt.Printf("error requesting information:\n %s\n", err)
+		fmt.Fprintf(os.Stderr, "error requesting information:\n %s\n", err)
 		return
 	}
 	display_response(resp)
 	if is_error(wattsError) {
-		fmt.Printf("error requesting information:\n %s\n", wattsError)
+		fmt.Fprintf(os.Stderr, "error requesting information:\n %s\n", wattsError)
 	} else {
 		fmt.Println(info)
 	}
@@ -408,16 +408,16 @@ func provider_list(base *sling.Sling) {
 	providerList := new(WattsProviderList)
 	wattsError := new(WattsError)
 	if !*jsonOutput {
-		fmt.Println("retrieving provider list:")
+		fmt.Fprintln(os.Stderr, "retrieving provider list:")
 	}
 	resp, err := base.Get("./oidcp").Receive(providerList, wattsError)
 	if err != nil {
-		fmt.Printf("error requesting list of provider:\n %s\n", err)
+		fmt.Fprintf(os.Stderr, "error requesting list of provider:\n %s\n", err)
 		return
 	}
 	display_response(resp)
 	if is_error(wattsError) {
-		fmt.Printf("error requesting list of provider:\n %s\n", wattsError)
+		fmt.Fprintf(os.Stderr, "error requesting list of provider:\n %s\n", wattsError)
 	} else {
 		fmt.Println(providerList)
 	}
@@ -427,16 +427,16 @@ func service_list(base *sling.Sling) {
 	serviceList := new(WattsServiceList)
 	wattsError := new(WattsError)
 	if !*jsonOutput {
-		fmt.Println("retrieving service list:")
+		fmt.Fprintln(os.Stderr, "retrieving service list:")
 	}
 	resp, err := base.Get("./service").Receive(serviceList, wattsError)
 	if err != nil {
-		fmt.Printf("error requesting list of services:\n %s\n", err)
+		fmt.Fprintf(os.Stderr, "error requesting list of services:\n %s\n", err)
 		return
 	}
 	display_response(resp)
 	if is_error(wattsError) {
-		fmt.Printf("error requesting list of services:\n %s\n", wattsError)
+		fmt.Fprintf(os.Stderr, "error requesting list of services:\n %s\n", wattsError)
 	} else {
 		fmt.Println(serviceList)
 	}
@@ -448,29 +448,29 @@ func credential_list(base *sling.Sling) {
 	wattsError := new(WattsError)
 
 	if !*jsonOutput {
-		fmt.Println("retrieving credential list:")
+		fmt.Fprintln(os.Stderr, "retrieving credential list:")
 	}
 	if *protVersion == 2 {
 		resp, err := base.Get("./credential").Receive(ListV2, wattsError)
 		if err != nil {
-			fmt.Printf("error requesting list of credentials:\n %s\n", err)
+			fmt.Fprintf(os.Stderr, "error requesting list of credentials:\n %s\n", err)
 			return
 		}
 		display_response(resp)
 		if is_error(wattsError) {
-			fmt.Printf("error requesting list of credentials:\n %s\n", wattsError)
+			fmt.Fprintf(os.Stderr, "error requesting list of credentials:\n %s\n", wattsError)
 		} else {
 			fmt.Println(ListV2)
 		}
 	} else {
 		resp, err := base.Get("./credential").Receive(ListV1, wattsError)
 		if err != nil {
-			fmt.Printf("error requesting list of credentials:\n %s\n", err)
+			fmt.Fprintf(os.Stderr, "error requesting list of credentials:\n %s\n", err)
 			return
 		}
 		display_response(resp)
 		if is_error(wattsError) {
-			fmt.Printf("error requesting list of credentials:\n %s\n", wattsError)
+			fmt.Fprintf(os.Stderr, "error requesting list of credentials:\n %s\n", wattsError)
 		} else {
 			fmt.Println(ListV1)
 		}
@@ -489,11 +489,13 @@ func credential_request(serviceId string, parameter string, base *sling.Sling) {
 
 	paramErr := json.Unmarshal([]byte(parameter), &parameterMap)
 	if paramErr != nil {
-		fmt.Printf("error parsing the parameter: %s\n", paramErr)
+		fmt.Fprintf(os.Stderr, "error parsing the parameter: %s\n", paramErr)
 		return
 	}
 	if !*jsonOutput {
-		fmt.Printf("requesting credential for service [%s]:\n", serviceId)
+		if *debugOutput {
+			fmt.Fprintf(os.Stderr, "requesting credential for service [%s]:\n", serviceId)
+		}
 	}
 
 	body := &WattsonCredentialRequest{
@@ -504,27 +506,27 @@ func credential_request(serviceId string, parameter string, base *sling.Sling) {
 	if *protVersion == 2 {
 		resp, err := base.Post("./credential").BodyJSON(body).Receive(credential, wattsError)
 		if err != nil {
-			fmt.Printf("error requesting of credential:\n %s\n", err)
+			fmt.Fprintf(os.Stderr, "error requesting of credential:\n %s\n", err)
 			return
 		}
 		display_response(resp)
 		if is_error(wattsError) {
 			fmt.Printf("error requesting of credential (at watts):\n %s\n", wattsError)
 		} else {
-			fmt.Println(credential)
+			fmt.Printf(credential.Credential.Entries[0].Value)
 		}
 	} else {
 		resp, err := base.Post("./credential").BodyJSON(body).Receive(oldCred, wattsError)
 		if err != nil {
-			fmt.Printf("error requesting of credential:\n %s\n", err)
+			fmt.Fprintf(os.Stderr, "error requesting of credential:\n %s\n", err)
 			return
 		}
 		display_response(resp)
 		if is_error(wattsError) {
-			fmt.Printf("error requesting of credential:\n %s\n", wattsError)
+			fmt.Fprintf(os.Stderr, "error requesting of credential:\n %s\n", wattsError)
 		} else {
 			credential.Credential.Entries = *oldCred
-			fmt.Println(credential)
+			fmt.Println(credential.Credential.Entries[0].Value)
 		}
 	}
 
@@ -532,12 +534,12 @@ func credential_request(serviceId string, parameter string, base *sling.Sling) {
 
 func credential_revoke(credId string, base *sling.Sling) {
 	if !*jsonOutput {
-		fmt.Printf("revoking credential [%s]:\n", credId)
+		fmt.Fprintf(os.Stderr, "revoking credential [%s]:\n", credId)
 	}
 	path := fmt.Sprintf("./credential/%s", credId)
 	resp, err := base.Delete(path).Receive(nil, nil)
 	if err != nil {
-		fmt.Printf("error revoking of credential:\n %s\n", err)
+		fmt.Fprintf(os.Stderr, "error revoking of credential:\n %s\n", err)
 		return
 	} else {
 		display_response(resp)
@@ -557,7 +559,7 @@ func get_issuer_account() (issuerSet bool, issuerValue string, agentIssuer strin
 		// agentAccount = issuerValue
 	}
 	if !issuerSet && (!*jsonOutput) {
-		fmt.Println("*** WARNING: no issuer has been provided ***")
+		fmt.Fprintln(os.Stderr, "*** WARNING: no issuer has been provided ***")
 		agentIssuer = ""
 		issuerValue = ""
 	}
@@ -574,8 +576,8 @@ func try_agent_token(account string, issuer string, base *sling.Sling) (tokenSet
 	if account != "" {
 		token, err := liboidcagent.GetAccessToken(account, 120, "", "wattson")
 		if err != nil {
-			fmt.Println("*** WARNING: Could not get token from oidc-agent and $WATTSON_TOKEN not set ***")
-			fmt.Printf("agent error: %s\n", err)
+			fmt.Fprintln(os.Stderr, "*** WARNING: Could not get token from oidc-agent and $WATTSON_TOKEN not set ***")
+			fmt.Fprintf(os.Stderr, "agent error: %s\n", err)
 			return false, tokenValue
 		}
 		return true, token
@@ -584,7 +586,7 @@ func try_agent_token(account string, issuer string, base *sling.Sling) (tokenSet
 		wattsError := new(WattsError)
 		_, err := base.Get("./oidcp").Receive(providerList, wattsError)
 		if err != nil {
-			fmt.Printf("error requesting list of provider:\n %s\n", err)
+			fmt.Fprintf(os.Stderr, "error requesting list of provider:\n %s\n", err)
 			return false, tokenValue
 		}
 		issuer_url := ""
@@ -596,8 +598,8 @@ func try_agent_token(account string, issuer string, base *sling.Sling) (tokenSet
 		}
 		token, err := liboidcagent.GetAccessTokenByIssuerURL(issuer_url, 120, "", "wattson")
 		if err != nil {
-			fmt.Println("*** WARNING: Could not get token from oidc-agent and $WATTSON_TOKEN not set ***")
-			fmt.Printf("agent error: %s\n", err)
+			fmt.Fprintln(os.Stderr, "*** WARNING: Could not get token from oidc-agent and $WATTSON_TOKEN not set ***")
+			fmt.Fprintf(os.Stderr, "agent error: %s\n", err)
 			return false, tokenValue
 		}
 		return true, token
@@ -646,14 +648,16 @@ func base_url(rawUrl string) string {
 	u, _ := url.Parse(rawUrl)
 	urlBase := u.Scheme + "://" + u.Host + u.Path + "api/" + apiPath
 	if !*jsonOutput {
-		fmt.Printf("connecting to %s using protocol version %d \n", urlBase, *protVersion)
+		if *debugOutput {
+			fmt.Fprintf(os.Stderr, "connecting to %s using protocol version %d \n", urlBase, *protVersion)
+		}
 	}
 	return urlBase
 }
 
 func display_response(resp *http.Response) {
 	if *debugOutput {
-		fmt.Printf("DEBUG: %s\n", *resp)
+		fmt.Fprintf(os.Stderr, "DEBUG: %s\n", *resp)
 		body, _ := ioutil.ReadAll(resp.Body)
 		resp.Body.Close()
 		fmt.Printf("DEBUG: %s\n", body)
