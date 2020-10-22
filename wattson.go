@@ -513,7 +513,9 @@ func credential_request(serviceId string, parameter string, base *sling.Sling) {
 		if is_error(wattsError) {
 			fmt.Printf("error requesting of credential (at watts):\n %s\n", wattsError)
 		} else {
-			fmt.Printf(credential.Credential.Entries[0].Value)
+			for _, entry := range credential.Credential.Entries {
+				fmt.Printf(entry.Value)
+			}
 		}
 	} else {
 		resp, err := base.Post("./credential").BodyJSON(body).Receive(oldCred, wattsError)
@@ -526,7 +528,9 @@ func credential_request(serviceId string, parameter string, base *sling.Sling) {
 			fmt.Fprintf(os.Stderr, "error requesting of credential:\n %s\n", wattsError)
 		} else {
 			credential.Credential.Entries = *oldCred
-			fmt.Println(credential.Credential.Entries[0].Value)
+			for _, entry := range credential.Credential.Entries {
+				fmt.Printf(entry.Value)
+			}
 		}
 	}
 
