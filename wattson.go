@@ -506,12 +506,35 @@ func credential_request(serviceId string, parameter string, base *sling.Sling) {
 	if *protVersion == 2 {
 		resp, err := base.Post("./credential").BodyJSON(body).Receive(credential, wattsError)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error requesting of credential:\n %s\n", err)
+			fmt.Fprintf(os.Stderr, "error requesting credential:\n %s\n", err)
 			return
 		}
 		display_response(resp)
 		if is_error(wattsError) {
-			fmt.Printf("error requesting of credential (at watts):\n %s\n", wattsError)
+			if wattsError.Message == "login is required, please use the web interface" {
+				// get WATTSON_ISSUER
+				var issuer string
+				issuerValue, issuerSet := os.LookupEnv("WATTSON_ISSUER")
+				if issuerSet {
+					issuer = issuerValue
+				} else {
+					issuer = ""
+				}
+				// get WATTSON_URL
+				var wattson_url string
+				urlValue, urlSet := os.LookupEnv("WATTSON_URL")
+				if urlSet {
+					wattson_url = urlValue
+				} else {
+					wattson_url = "https://watts-prod.data.kit.edu xxx"
+				}
+				// display elaborate error message:
+				fmt.Fprintf(os.Stderr, "  You need to get a new certificate.\n\n")
+				fmt.Fprintf(os.Stderr, "  Please visit %s?provider=%s\n", wattson_url, issuer)
+				fmt.Fprintf(os.Stderr, "  There click \"Request\" at service \"%s\"\n\n", *requestId)
+			} else {
+				fmt.Fprintf(os.Stderr, "error requesting credential (at watts):\n %s\n\n", wattsError)
+			}
 		} else {
 			for _, entry := range credential.Credential.Entries {
 				fmt.Printf(entry.Value)
