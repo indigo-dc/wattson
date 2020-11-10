@@ -530,8 +530,9 @@ func credential_request(serviceId string, parameter string, base *sling.Sling) {
 				}
 				// display elaborate error message:
 				fmt.Fprintf(os.Stderr, "  You need to get a new certificate.\n\n")
-				fmt.Fprintf(os.Stderr, "  Please visit %s?provider=%s\n", wattson_url, issuer)
-				fmt.Fprintf(os.Stderr, "  There click \"Request\" at service \"%s\"\n\n", *requestId)
+				fmt.Fprintf(os.Stderr, "  Please visit %s/oidc?provider=%s\n", wattson_url, issuer)
+				fmt.Fprintf(os.Stderr, "  There click \"Request\" at service \"%s\" and follow the flow.\n\n", *requestId)
+				fmt.Fprintf(os.Stderr, "  Then run the last commandline again.\n\n")
 			} else {
 				fmt.Fprintf(os.Stderr, "error requesting credential (at watts):\n %s\n\n", wattsError)
 			}
